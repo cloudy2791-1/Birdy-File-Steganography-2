@@ -1,0 +1,3076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Birdy文件隐写</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b0e17;
+            color: #eef3fc;
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body.modal-open { overflow: hidden; }
+        .privacy-vault {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(18, 22, 35, 0.9);
+            border: 1px solid rgba(160, 180, 255, 0.15);
+            border-radius: 2.5rem;
+            padding: 2rem 2rem 2.2rem;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(120, 140, 255, 0.1) inset;
+        }
+        .vault-header {
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .vault-header h1 {
+            font-size: 2.4rem;
+            font-weight: 650;
+            background: linear-gradient(130deg, #e6edff, #c0d0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .vault-header h1:active { transform: scale(0.97); }
+        .vault-header h1 span {
+            background: rgba(95, 110, 255, 0.2);
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            -webkit-text-fill-color: #cbd5ff;
+            border: 0.5px solid rgba(180, 200, 255, 0.3);
+        }
+        .privacy-badge {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+            color: #b7cdff;
+        }
+        .privacy-badge i {
+            background: rgba(20, 40, 80, 0.4);
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            border: 0.5px solid rgba(80, 140, 255, 0.2);
+            font-style: normal;
+        }
+        .alert-box {
+            background: rgba(10, 20, 45, 0.7);
+            border-left: 4px solid #7c93ff;
+            border-radius: 2rem;
+            padding: 1.4rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(100, 130, 250, 0.3);
+            font-size: 0.85rem;
+        }
+        .alert-box strong { color: #eef3ff; font-weight: 600; }
+        .alert-box ul { margin: 0.7rem 0 0 1.5rem; color: #ccdcff; }
+        .alert-box li { margin-bottom: 0.25rem; }
+        .mode-tabs {
+            display: flex;
+            gap: 0.8rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 60px;
+            margin-bottom: 2rem;
+            border: 0.5px solid rgba(130, 170, 255, 0.3);
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 0.9rem 1.2rem;
+            border: none;
+            background: transparent;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #b1ceff;
+            cursor: pointer;
+            transition: 0.2s;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .mode-tab.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+        .mode-tab.active {
+            background: linear-gradient(145deg, #2f3b70, #222b55);
+            color: white;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px #9bb3ff;
+        }
+        .card {
+            background: rgba(15, 22, 40, 0.8);
+            border: 1px solid rgba(110, 150, 255, 0.2);
+            border-radius: 2.2rem;
+            padding: 1.8rem 2rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 12px 28px -10px #00000080, 0 0 0 1px rgba(160, 180, 255, 0.1) inset;
+        }
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1.4rem;
+            color: #e2ebff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px dashed #3d5580;
+            padding-bottom: 0.8rem;
+        }
+        .upload-area {
+            border: 2px dashed rgba(120, 160, 255, 0.4);
+            background: rgba(8, 16, 36, 0.7);
+            border-radius: 2rem;
+            padding: 2.2rem 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+            color: #d6e5ff;
+            font-weight: 500;
+        }
+        .upload-area:hover {
+            border-color: #a5b9ff;
+            background: rgba(28, 42, 74, 0.8);
+        }
+        .upload-area.drag-over {
+            border-color: #ffffff;
+            background: rgba(50, 80, 160, 0.5);
+        }
+        .upload-area small {
+            display: block;
+            margin-top: 0.6rem;
+            font-size: 0.7rem;
+            color: #99baff;
+        }
+        .file-info {
+            font-size: 0.75rem;
+            margin: 0.5rem 0 1rem;
+            padding: 0.3rem 0.8rem;
+            background: #0f1a30b3;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #2e4b80;
+            word-break: break-word;
+        }
+        .file-info.success { color: #a0f0d0; border-color: #34d399; }
+        .file-info.error { color: #ffb3b3; border-color: #ef4444; }
+        .clear-file-btn {
+            background: rgba(220, 70, 70, 0.2);
+            border: 1px solid #ef7f7f;
+            color: #ffd6d6;
+            border-radius: 30px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+        .clear-file-btn:hover { background: #ef4444; color: white; }
+        .input-group { margin-bottom: 1.5rem; position: relative; }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 550;
+            color: #d2e2ff;
+            font-size: 0.8rem;
+            letter-spacing: 0.3px;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 1rem 1.4rem;
+            background: #0c1426;
+            border: 1.5px solid #2c3f70;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            color: #f1f5f9;
+            transition: 0.15s;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #9bb3ff;
+            outline: none;
+            background: #111d38;
+            box-shadow: 0 0 0 3px #3860d040;
+        }
+        .toggle-pwd-btn {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #b1d0ff;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0 8px;
+            font-size: 0.8rem;
+            line-height: 1;
+            z-index: 2;
+        }
+        .toggle-pwd-btn:hover { color: #ffffff; }
+        .password-meter {
+            height: 6px;
+            background: #1b253f;
+            border-radius: 6px;
+            margin-top: 0.7rem;
+            overflow: hidden;
+        }
+        .password-strength { height: 100%; width: 0%; transition: width 0.3s; }
+        .strength-weak { background: #f87171; }
+        .strength-medium { background: #fbbf24; }
+        .strength-strong { background: #34d399; }
+        .password-helper {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        .tiny-btn {
+            background: rgba(45, 65, 120, 0.6);
+            border: 1px solid #6f8dff;
+            color: #eef3ff;
+            padding: 0.5rem 1.4rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .tiny-btn:hover { background: #4f6ad0; border-color: #b1c3ff; }
+        .password-display-area {
+            margin-top: 1rem;
+            padding: 1rem 1.4rem;
+            background: #0c1730;
+            border: 1px solid #6080ff;
+            border-radius: 2rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .password-display-area.show { display: flex; }
+        .password-display-area span {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 1rem;
+            color: #a7f0d0;
+            word-break: break-all;
+            margin-right: 1rem;
+            flex: 1;
+        }
+        .password-display-actions { display: flex; gap: 0.6rem; }
+        .copy-password-btn, .close-password-btn {
+            background: #25345c;
+            border: 1px solid #7c93ff;
+            color: white;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .close-password-btn { border-color: #f87171; }
+        .size-warning {
+            margin-top: 1rem;
+            padding: 0.8rem 1.2rem;
+            background: #4d3d1a30;
+            border-left: 4px solid #fbbf24;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            color: #ffdb9d;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.2rem 0;
+            flex-wrap: wrap;
+        }
+        .shortcut-hint {
+            font-size: 0.7rem;
+            color: #b8ceff;
+            border: 1px dashed #5275b5;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+        }
+        .btn {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 0.5px solid #b3c6ff;
+            box-shadow: 0 6px 0 #1f1d4b;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 0 #1f1d4b;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            box-shadow: 0 6px 0 #19163b;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .progress {
+            height: 8px;
+            background: #1b2542;
+            border-radius: 40px;
+            margin: 1.5rem 0 0.8rem;
+            overflow: hidden;
+            display: none;
+        }
+        .progress.active { display: block; }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6c8cff, #c57cff);
+            width: 0%;
+            border-radius: 40px;
+        }
+        .progress-text {
+            font-size: 0.7rem;
+            color: #b7d0ff;
+            text-align: right;
+            margin-top: 0.2rem;
+        }
+        .message {
+            padding: 1rem 1.6rem;
+            border-radius: 2rem;
+            margin: 1.2rem 0;
+            font-size: 0.85rem;
+            display: none;
+            background: rgba(0, 10, 30, 0.8);
+        }
+        .message.active { display: block; }
+        .message.success { background: #1d4530b3; border-left: 5px solid #4ade80; }
+        .message.error { background: #4f2a2ab3; border-left: 5px solid #f87171; }
+        .message.info { background: #1e3b66b3; border-left: 5px solid #60a5fa; }
+        .download-section {
+            padding: 2rem 2rem;
+            background: rgba(20, 30, 60, 0.8);
+            border-radius: 2.2rem;
+            text-align: center;
+            display: none;
+            margin-top: 1.5rem;
+            border: 1px solid #4d70bb;
+        }
+        .download-section.active { display: block; }
+        .download-link {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            background: linear-gradient(145deg, #0d9488, #0891b2);
+            border-radius: 60px;
+            color: white;
+            font-weight: 700;
+            text-decoration: none;
+            margin: 1rem 0;
+            border: 0.5px solid #a5f0ea;
+            box-shadow: 0 6px 0 #175759;
+        }
+        .countdown-timer {
+            font-size: 0.8rem;
+            color: #fcd34d;
+            background: #1f284f;
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            display: inline-block;
+        }
+        .cancel-burn {
+            background: transparent;
+            border: 1px solid #9aa8c0;
+            color: #dde5ff;
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            margin-left: 1rem;
+            cursor: pointer;
+        }
+        .cancel-burn:hover { background: #374151; }
+        .burn-after {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        .btn-burn {
+            background: transparent;
+            border: 1px solid #b45353;
+            color: #ffbfbf;
+            padding: 0.8rem 2rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-burn:hover { background: #991b1b60; border-color: #ef4444; }
+        .vault-footer {
+            margin-top: 2rem;
+            font-size: 0.65rem;
+            color: #8fa0cc;
+            text-align: center;
+            border-top: 1px dashed #3a4c7c;
+            padding-top: 1.5rem;
+        }
+        .privacy-note { font-size: 0.7rem; color: #a5b9e0; background: #0c1730; padding: 0.4rem 1rem; border-radius: 40px; }
+        .api-hint { font-size: 0.7rem; background: #1e2f55; padding: 0.4rem 1rem; border-radius: 30px; color: #bdd3ff; border: 1px solid #4660a0; display: inline-block; }
+        .easter-egg {
+            background: #141f3a;
+            border-radius: 1.8rem;
+            padding: 1.2rem;
+            font-family: monospace;
+            white-space: pre;
+            color: #a5f0c5;
+            font-size: 0.7rem;
+            line-height: 1.3;
+            border-left: 4px solid #f59e0b;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+        .easter-egg.show { display: block; }
+        .hidden { display: none; }
+        @media (max-width: 600px) {
+            body { padding: 0.5rem; }
+            .privacy-vault { padding: 1rem; border-radius: 1.5rem; }
+            .vault-header h1 { font-size: 1.8rem; }
+            .vault-header h1 span { font-size: 0.65rem; }
+            .privacy-badge i { padding: 0.3rem 0.8rem; }
+            .mode-tab { padding: 0.7rem 0.8rem; font-size: 0.85rem; }
+            .upload-area { padding: 1.5rem 0.8rem; }
+            .btn { padding: 1rem 1.2rem; font-size: 0.9rem; }
+            .input-group input, .input-group select { padding: 0.8rem 1rem; }
+            .card { padding: 1.2rem 1rem; }
+            .password-display-area { flex-direction: column; align-items: flex-start; }
+            .password-display-actions { margin-top: 0.5rem; }
+            .clear-file-btn, .tiny-btn, .copy-password-btn, .close-password-btn, .cancel-burn, .btn-burn, .toggle-pwd-btn {
+                min-height: 44px;
+                min-width: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .toggle-pwd-btn { right: 8px; }
+        }
+        .extra-warning {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            border-radius: 1rem;
+            padding: 0.8rem 1.2rem;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #ffdb9d;
+        }
+        .disclaimer-modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(5, 8, 20, 0.95);
+            z-index: 999999;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .disclaimer-content {
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: rgba(22, 30, 55, 0.95);
+            border: 1px solid #7088ff;
+            border-radius: 3rem;
+            padding: 2rem 2.5rem;
+            box-shadow: 0 30px 60px #00000080, 0 0 0 1px #5c7eff;
+            color: #eef3ff;
+        }
+        .disclaimer-content h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(145deg, #e0e9ff, #b2c8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-bottom: 1px dashed #5f7ec0;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .scroll-hint {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #b6e6ff;
+            background: #253761;
+            padding: 0.6rem 1.2rem;
+            border-radius: 60px;
+            border: 0.5px solid #a0b9ff;
+        }
+        .disclaimer-text { font-size: 0.85rem; color: #dbe6ff; margin-bottom: 1.8rem; }
+        .agree-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 60px;
+            color: white;
+            font-weight: 700;
+            border: 0.5px solid #c0d0ff;
+            box-shadow: 0 8px 0 #232054;
+            cursor: pointer;
+        }
+        .agree-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 0 #232054; }
+        .agree-btn:disabled { opacity: 0.5; box-shadow: 0 6px 0 #1b183f; transform: none; }
+        .disclaimer-hidden { display: none !important; }
+        .disclaimer-sticky-bar {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            background: #9f2d2df0;
+            color: #ffd9d9;
+            font-size: 0.75rem;
+            padding: 0.8rem 2rem;
+            text-align: center;
+            z-index: 99999;
+            border-top: 2px solid #ff7a7a;
+        }
+        .disclaimer-sticky-bar a { color: #ffdb9d; text-decoration: underline; cursor: pointer; margin-left: 1rem; }
+        body.modal-open { overflow: hidden; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="privacy-vault">
+        <div class="vault-header">
+            <h1 id="birdyTitle" tabindex="-1">文件隐写</h1>
+            <div class="privacy-badge">
+                <i>AES-256-GCM 离线</i>
+                <i>PBKDF2 1M迭代</i>
+                <i>尽力清除内存*</i>
+                <i>PNG zTXt / JPEG可选</i>
+            </div>
+        </div>
+
+        <div class="alert-box" role="region" aria-label="功能说明">
+            <strong>功能说明</strong>
+            <ul>
+                <li>✓ 封面图片 + 任意文件 → 加密后隐写到图片中</li>
+                <li>✓ PNG采用zTXt压缩文本块（无固定特征，随机会话ID），JPEG采用尾部追加</li>
+                <li>✓ AES-256-GCM 分块加密，支持超大文件</li>
+                <li>✓ 随机盐/IV，密钥不重复 · SHA‑256 完整性校验</li>
+                <li>✓ 随机密码生成器 (20位) + 复制</li>
+                <li>✓ “销毁痕迹”清空表单/撤销URL/中止Worker</li>
+                <li>✓ 图片魔数验证（PNG/JPEG）</li>
+                <li>✓ <strong style="color:#a5f0c5;">元数据加密存储</strong>（文件名等不再明文）</li>
+                <li style="color:#fdba74;">✨ 连续点击标题5次彩蛋</li>
+            </ul>
+        </div>
+
+        <div id="easterEgg" class="easter-egg" role="status" aria-live="polite">
+            🐦 发现 BIRDY 彩蛋！ (隐写升级版 – zTXt)
+        </div>
+
+        <div class="mode-tabs" role="tablist" aria-label="功能选择">
+            <button class="mode-tab active" data-mode="encrypt" role="tab" aria-selected="true" aria-controls="encrypt-mode" id="tab-encrypt">加密并隐写</button>
+            <button class="mode-tab" data-mode="decrypt" role="tab" aria-selected="false" aria-controls="decrypt-mode" id="tab-decrypt">解密并提取</button>
+        </div>
+
+        <div id="encrypt-mode" role="tabpanel" aria-labelledby="tab-encrypt" class="mode-content">
+            <div class="card">
+                <h3 id="encrypt-heading-1">1. 载体图片 & 机密文件</h3>
+                <div class="upload-area" id="encrypt-image-area" role="button" tabindex="0" aria-label="选择封面图片，支持PNG或JPEG格式" aria-describedby="encrypt-image-desc">
+                    选择封面图片 (PNG/JPEG)<br>
+                    <small id="encrypt-image-desc">PNG嵌入zTXt块（压缩+随机标识），JPEG尾部追加</small>
+                    <input type="file" id="encrypt-image-input" class="hidden" accept="image/png,image/jpeg" tabindex="-1" aria-hidden="true">
+                </div>
+                <div id="encrypt-image-info" class="file-info" role="status" aria-live="polite"></div>
+
+                <div class="upload-area" id="encrypt-file-area" role="button" tabindex="0" aria-label="选择要加密的文件，任意类型" aria-describedby="encrypt-file-desc">
+                    选择要加密的文件 (任意类型)<br>
+                    <small id="encrypt-file-desc">分块加密，理论无大小限制（建议 ≤1GB）</small>
+                    <input type="file" id="encrypt-file-input" class="hidden" accept="*" tabindex="-1" aria-hidden="true">
+                </div>
+                <div id="encrypt-file-info" class="file-info" role="status" aria-live="polite"></div>
+                <div id="fsa-hint" class="api-hint" style="display: none;"><i>💾</i> 支持文件系统API</div>
+                <div class="size-warning" role="note">
+                    <i>⚠</i> 大文件可能导致浏览器卡顿，请谨慎操作。
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 id="encrypt-heading-2">2. 密码与安全策略</h3>
+                <div class="input-group">
+                    <label for="output-name">输出文件名 (不含扩展名)</label>
+                    <input type="text" id="output-name" value="encrypted_vault" placeholder="自定义文件名">
+                </div>
+                <div class="input-group">
+                    <label for="password">加密密码 (至少4位)</label>
+                    <div style="position:relative;">
+                        <input type="password" id="password" placeholder="输入密码" autocomplete="off" style="width:100%; padding-right:60px;">
+                        <button type="button" id="toggle-encrypt-password" class="toggle-pwd-btn" aria-label="切换密码可见性，当前为隐藏状态" aria-pressed="false">显示</button>
+                    </div>
+                    <div class="password-meter" role="presentation">
+                        <div id="password-strength" class="password-strength" style="width:0%;"></div>
+                    </div>
+                    <div id="password-strength-text" class="file-info" role="status" aria-live="polite"></div>
+                    <div class="password-helper">
+                        <button type="button" id="generate-password-btn" class="tiny-btn">生成20位随机密码</button>
+                        <span style="color:#a5d8ff;">界面内显示/复制</span>
+                    </div>
+                    <div id="password-display" class="password-display-area" role="region" aria-live="polite">
+                        <span id="generated-password-text"></span>
+                        <div class="password-display-actions">
+                            <button id="copy-password-btn" class="copy-password-btn">复制</button>
+                            <button id="close-password-btn" class="close-password-btn">✕</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="confirm-password">确认密码</label>
+                    <div style="position:relative;">
+                        <input type="password" id="confirm-password" placeholder="再次输入密码" autocomplete="off" style="width:100%; padding-right:60px;">
+                        <button type="button" id="toggle-encrypt-confirm" class="toggle-pwd-btn" aria-label="切换确认密码可见性，当前为隐藏状态" aria-pressed="false">显示</button>
+                    </div>
+                    <div id="password-match-info" class="file-info" role="status" aria-live="polite"></div>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <label for="security-level">PBKDF2 迭代次数</label>
+                    <select id="security-level" style="width:100%; padding:12px; background:#0d1221; border:1px solid #424f7a; border-radius:20px; color:white;">
+                        <option value="500000" selected>增强强度 (500,000次) · 推荐</option>
+                        <option value="1000000">极限强度 (1,000,000次) · 慢但抗暴力</option>
+                        <option value="250000">标准 (250,000次) · 快速</option>
+                    </select>
+                    <div id="iterations-warning" style="color:#fca5a5; font-size:0.75rem; margin-top:6px;">⚠ 极限强度对低性能设备可能有明显延迟</div>
+                </div>
+
+                <!-- JPEG格式保持选项 -->
+                <div class="option-row" style="margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="keep-jpeg-checkbox" style="width: 18px; height: 18px; accent-color: #7c93ff;"> 
+                        <span style="color: #ffb3b3;">保持JPEG格式（不推荐，可能不安全）</span>
+                    </label>
+                    <span class="shortcut-hint" style="margin-left: auto;">JPEG尾部追加易丢失</span>
+                </div>
+
+                <div class="option-row">
+                    <span class="shortcut-hint">Ctrl+Enter 快速执行</span>
+                </div>
+                <div class="privacy-note">彻底清除内存痕迹请关闭页面。</div>
+            </div>
+
+            <div class="progress" id="encrypt-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="等待开始" aria-live="polite">
+                <div class="progress-bar" id="encrypt-progress-bar" style="width:0%;"></div>
+            </div>
+            <div class="progress-text" id="encrypt-progress-text">待命 · 完全离线</div>
+            <div class="message" id="encrypt-message" role="alert" aria-live="assertive"></div>
+            <button class="btn" id="start-encrypt-btn" disabled>开始加密 & 隐写</button>
+
+            <div class="download-section" id="encrypt-download-section">
+                <h3 style="color:#b3e0ff">☑ 加密完成 · 已隐写至图片</h3>
+                <p style="color:#cbd5e1; font-size:0.9rem;">文件嵌入成功，完整性哈希已锁定</p>
+                <div class="extra-warning" role="note">
+                    <i>⚠️ 重要提醒：</i> 加密后的图片若被图像编辑软件重新保存，JPEG尾部可能丢失、PNG元数据可能被清除，导致数据永久损坏。请务必保留原始图片备份。
+                </div>
+                <a href="#" id="download-encrypted-link" class="download-link" download role="button">下载加密图片</a>
+                <div id="encrypt-countdown" class="countdown-timer" aria-live="polite">链接将在 30 秒后自动销毁</div>
+                <button id="encrypt-cancel-burn" class="cancel-burn">✘ 立即销毁</button>
+            </div>
+        </div>
+
+        <div id="decrypt-mode" role="tabpanel" aria-labelledby="tab-decrypt" class="mode-content hidden">
+            <div class="card">
+                <h3 id="decrypt-heading-1">1. 选择已被加密的图片（本工具生成）</h3>
+                <div class="upload-area" id="decrypt-file-area" role="button" tabindex="0" aria-label="载入含有机密数据的图片，支持PNG或JPEG" aria-describedby="decrypt-file-desc">
+                    载入含有机密数据的图片<br>
+                    <small id="decrypt-file-desc">支持PNG/JPEG</small>
+                    <input type="file" id="decrypt-file-input" class="hidden" accept="image/png,image/jpeg" tabindex="-1" aria-hidden="true">
+                </div>
+                <div id="decrypt-file-info" class="file-info" role="status" aria-live="polite"></div>
+                <div class="size-warning"><i>⚠</i> 大文件可能导致浏览器卡顿。</div>
+            </div>
+            <div class="card">
+                <h3 id="decrypt-heading-2">2. 输入解密密码</h3>
+                <div class="input-group">
+                    <label for="decrypt-password">密码</label>
+                    <div style="position:relative;">
+                        <input type="password" id="decrypt-password" placeholder="请输入加密时使用的密码" autocomplete="off" style="width:100%; padding-right:60px;">
+                        <button type="button" id="toggle-decrypt-password" class="toggle-pwd-btn" aria-label="切换密码可见性，当前为隐藏状态" aria-pressed="false">显示</button>
+                    </div>
+                </div>
+                <span class="shortcut-hint" style="margin-left:8px;">Ctrl+Enter 快速解密</span>
+            </div>
+            <div class="progress" id="decrypt-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="等待开始" aria-live="polite">
+                <div class="progress-bar" id="decrypt-progress-bar" style="width:0%;"></div>
+            </div>
+            <div class="progress-text" id="decrypt-progress-text"> </div>
+            <div class="message" id="decrypt-message" role="alert" aria-live="assertive"></div>
+            <button class="btn" id="start-decrypt-btn" disabled>解密并验证完整性</button>
+            <div class="download-section" id="decrypt-download-section">
+                <h3 style="color:#b3e0ff">✔ 解密成功 · 原始文件</h3>
+                <div style="background: #0f1a30; padding: 1.2rem; border-radius: 1.5rem; text-align:left">
+                    <p><span style="color:#9dc6ff;">文件名</span>：<span id="decrypted-filename"></span></p>
+                    <p><span style="color:#9dc6ff;">大小</span>：<span id="decrypted-filesize"></span></p>
+                    <p><span style="color:#9dc6ff;">完整性校验</span>：<span id="integrity-check" style="font-weight:700;">✓ 通过</span></p>
+                    <p><span style="color:#9dc6ff;">PBKDF2 迭代</span>：<span id="encryption-strength"></span></p>
+                </div>
+                <a href="#" id="download-decrypted-link" class="download-link" download role="button">下载原始文件</a>
+                <div id="decrypt-countdown" class="countdown-timer" aria-live="polite">⏳ 链接将在 30 秒后自动销毁</div>
+                <button id="decrypt-cancel-burn" class="cancel-burn">✘ 立即销毁</button>
+            </div>
+        </div>
+
+        <div class="burn-after">
+            <button id="burn-trace-btn" class="btn-burn" aria-label="销毁痕迹，清空所有表单、中止任务并吊销下载链接">➠ 销毁痕迹 (清空/中止/撤销)</button>
+        </div>
+        <div class="vault-footer">
+            纯离线 · 无网络请求 · 关闭页面即释放内存<br>
+            BIRDY
+        </div>
+        <div style="margin-top: 20px; padding: 12px; border-top: 1px dashed #3f5270; font-size: 0.7rem; color: #a0b3d9; text-align: center; background: rgba(10, 14, 23, 0.4); border-radius: 8px;">
+            ⚠ <strong>免责声明</strong>：本工具仅用于隐私保护与加密技术学习研究。使用者必须严格遵守所在地法律法规，严禁用于任何违法犯罪活动。使用即视为同意。
+        </div>
+    </div>
+
+    <div id="disclaimerModal" class="disclaimer-modal" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title" aria-describedby="disclaimer-text-block">
+        <div class="disclaimer-content" id="disclaimer-scroll">
+            <h2 id="disclaimer-title">法律与责任声明</h2>
+            <div class="scroll-hint" id="disclaimer-scroll-hint">⇩ 请下滑阅读完整声明 ⇩</div>
+            <div class="disclaimer-text" id="disclaimer-text-block">
+                <p><strong>本工具仅用于隐私保护与加密技术学习研究。使用者必须严格遵守所在地法律法规，严禁用于任何违法犯罪活动。</strong></p>
+                <p>─────────────────────────</p>
+                <p style="white-space: pre-wrap; margin-top:10px;">
+<b>一、工具性质与设计初衷</b>
+1.1 本工具的核心功能是将任意文件经高强度加密后隐写到普通图片文件中，使图片仍可正常预览，从而实现“视觉无害、内容保密”的效果。
+1.2 开发者设计此工具的唯一目的是：为普通互联网用户提供一种对抗大数据监控、保护个人隐私的技术手段；用于合法的文件保密、信息安全教学、个人数据备份等场景；演示现代密码学与隐写术的工程实践。
+1.3 开发者明确反对任何将本工具用于侵犯他人合法权益、破坏网络安全、传播违法信息、从事间谍活动或其他违反中华人民共和国法律及国际法的行为。
+
+<b>二、使用者责任</b>
+2.1 您（使用者）是本工具一切行为的唯一责任主体。您必须确保：您对使用本工具加密、解密、传输、存储的任何内容拥有合法权利或已获得明确授权；您不会利用本工具制作、传播、存储任何违反中国法律法规及用户所在地法律的内容。
+2.2 如您将本工具提供给他人使用，您有义务向其完整转达本免责声明，并对其使用行为承担连带监督责任。
+2.3 因您使用本工具所产生的任何法律纠纷、行政处罚、诉讼索赔、刑事责任等，均由您独立承担，开发者不承担任何直接或间接责任。
+
+<b>三、技术限制与无担保声明</b>
+3.1 本工具按“现状”提供，不附带任何明示或暗示的担保。
+3.2 开发者不保证本工具绝对安全、完全无法被破解或检测，亦不保证其能规避任何特定国家/地区的网络审查制度。
+3.3 开发者从未以任何形式向任何机构、组织或个人提供后门、协助解密或配合监控，本工具不包含任何远程控制、数据回传、主动联网等功能。
+
+<b>四、关于隐写与加密的法律边界提醒</b>
+4.1 隐写技术本身是中立的信息隐藏方法，中国法律并未禁止公民使用加密或隐写技术保护个人信息。
+4.2 但请注意：任何技术都可能被滥用。如果您将本工具用于隐藏非法活动的证据、传递违禁信息、逃避网络安全审查，则已经构成违法，您将为此承担全部法律后果。
+4.3 开发者强烈建议：在对公传输加密图片时，主动配合网信、公安等部门依法进行的监督检查；在解密请求时，依法提供密码或配合解密（如确有义务）。
+
+<b>五、免责范围</b>
+5.1 在任何情况下，开发者均不对因使用或无法使用本工具导致的任何直接、间接、偶然、特殊或惩罚性损害负责。
+5.2 若您对本工具的任何部分或本免责声明的全部条款不满意，您应当立即停止使用并彻底删除所有副本。
+
+<b>六、最终解释权</b>
+6.1 本免责声明的最终解释权归开发者所有。开发者保留在不另行通知的情况下随时修改、更新本声明的权利，您有义务定期查阅。
+                </p>
+                <p style="color:#fdba74; margin-top:15px;">我已阅读并理解上述全部条款，并承诺严格遵守法律法规，仅将本工具用于合法目的。</p>
+            </div>
+            <button id="agreeDisclaimerBtn" class="agree-btn" disabled>✔ 我同意，并继续使用</button>
+            <div class="disclaimer-footer">BIRDY</div>
+        </div>
+    </div>
+
+    <div id="stickyDisclaimerBar" class="disclaimer-sticky-bar">
+        ⚠ 本工具仅限合法隐私保护与学习研究，严禁用于非法用途。使用者承担全部法律责任。
+        <a id="showModalAgainBtn" href="#" role="button">[查看完整声明]</a>
+    </div>
+
+    <div class="sr-only" id="aria-live-assertive" aria-live="assertive" aria-atomic="true"></div>
+    <div class="sr-only" id="aria-live-polite" aria-live="polite" aria-atomic="true"></div>
+
+    <script>
+        (() => {
+            const CONSTANTS = {
+                COUNTDOWN_SECONDS: 30,
+                GENERATED_PASSWORD_LENGTH: 20,
+                MAX_SAFE_FILE_SIZE: 500 * 1024 * 1024,
+                LARGE_FILE_WARN_SIZE: 100 * 1024 * 1024,
+                SALT_SIZE: 16,
+                IV_SIZE: 12,
+                MARKER: 'bird',
+                MIN_ITERATIONS: 250000,
+                MAX_ITERATIONS: 2000000,
+                MSG_ENCRYPT: 'encrypt-message',
+                MSG_DECRYPT: 'decrypt-message',
+                PROGRESS_ENCRYPT: 'encrypt-progress',
+                PROGRESS_DECRYPT: 'decrypt-progress',
+                CHUNK_ID_SIZE: 16,
+                // 基础块大小，将被动态覆盖
+                BASE_PAYLOAD_CHUNK: 65536,
+                // 定义不同档位的块大小（字节）
+                CHUNK_SIZE_SMALL: 65536,    // 64KB
+                CHUNK_SIZE_MEDIUM: 131072,  // 128KB
+                CHUNK_SIZE_LARGE: 262144,   // 256KB
+                CHUNK_SIZE_XLARGE: 524288   // 512KB
+            };
+
+            function formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            function formatIterations(iter) {
+                if (iter >= 1000000) return (iter/1000000).toFixed(1) + 'M';
+                if (iter >= 1000) return (iter/1000).toFixed(0) + 'K';
+                return iter;
+            }
+
+            function sanitizeFilename(name) {
+                if (typeof name !== 'string') return 'encrypted_vault';
+                let cleaned = name.replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g, '');
+                cleaned = cleaned.replace(/^\.+/, '');
+                if (cleaned.length > 200) cleaned = cleaned.substring(0, 200);
+                return cleaned || 'encrypted_vault';
+            }
+
+            // ---------- 密码强度检查类 ----------
+            class PasswordStrengthChecker {
+                static EXTENDED_WEAK_PASSWORDS = new Set([
+                    '123456', 'password', '12345678', 'qwerty', '123456789', '12345', '1234', '111111',
+                    '1234567', 'dragon', '123123', 'baseball', 'abc123', 'football', 'monkey', 'letmein',
+                    '696969', 'shadow', 'master', '666666', 'qwertyuiop', '123321', 'mustang', '1234567890',
+                    'michael', '654321', 'superman', '1qaz2wsx', '7777777', '121212', '000000', 'qazwsx',
+                    '123qwe', 'killer', 'trustno1', 'jordan', 'jennifer', 'zxcvbnm', 'asdfgh', 'hunter',
+                    'buster', 'soccer', 'harley', 'batman', 'andrew', 'tigger', 'sunshine', 'iloveyou',
+                    '2000', 'charlie', 'robert', 'thomas', 'hockey', 'ranger', 'daniel', 'starwars',
+                    'klaster', '112233', 'george', 'computer', 'michelle', 'jessica', 'pepper', '1111',
+                    'zxcvbn', '555555', '11111111', '131313', 'freedom', '777777', 'pass', 'maggie',
+                    '159753', 'aaaaaa', 'ginger', 'princess', 'joshua', 'cheese', 'amanda', 'summer',
+                    'love', 'ashley', 'nicole', 'chelsea', 'biteme', 'matthew', 'access', 'yankees',
+                    '987654321', 'dallas', 'austin', 'thunder', 'taylor', 'matrix', 'mobilemail', 'mom',
+                    'monitor', 'monitoring', 'montana', 'moon', 'moscow', 'random', 'password1', 'password123',
+                    'admin', 'welcome', 'welcome123', 'admin123', 'qwerty123', '1qaz2wsx', 'root', 'toor',
+                    'q1w2e3r4', 'q1w2e3r4t5', '1q2w3e4r', 'qwertyuiop[]', 'asdfghjkl;', 'zxcvbnm,.',
+                    '!@#$%^&*', 'passw0rd', 'p@ssw0rd', 'P@ssw0rd', 'password!', 'Password1',
+                    'changeme', 'test123', 'test1234', 'test1', 'test', 'demo', 'demo123', 'testtest'
+                ]);
+
+                static KEYBOARD_PATTERNS = [
+                    'qwerty', 'qwertyuiop', 'asdfgh', 'asdfghjkl', 'zxcvbn', 'zxcvbnm', '1qaz2wsx', 'q1w2e3r4',
+                    '1qaz', '2wsx', '3edc', '4rfv', '5tgb', '6yhn', '7ujm', '8ik,', '9ol.', '0p;/',
+                    'qazwsx', 'wsxedc', 'edcrfv', 'rfvtgb', 'tgbzhn', 'yhnujm', 'ujmik,', 'ik,ol.'
+                ];
+
+                static isWeakPassword(pwd) {
+                    const lower = pwd.toLowerCase();
+                    if (PasswordStrengthChecker.EXTENDED_WEAK_PASSWORDS.has(lower)) return true;
+                    for (let pattern of PasswordStrengthChecker.KEYBOARD_PATTERNS) {
+                        if (lower.includes(pattern)) return true;
+                    }
+                    if (/(.)\1{3,}/.test(pwd)) return true;
+                    if (/^(19|20)\d{2}$/.test(pwd)) return true;
+                    if (/^(?:0123456789|123456789|23456789|3456789|456789|56789|6789|789|89|9|987654321|87654321|7654321|654321|54321|4321|321|21|1)$/.test(pwd)) return true;
+                    if (/^(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[0-2])\d{2}$/.test(pwd)) return true;
+                    if (/^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])\d{2}$/.test(pwd)) return true;
+                    return false;
+                }
+
+                static getPasswordStrength(password) {
+                    if (!password) return 0;
+                    if (PasswordStrengthChecker.isWeakPassword(password)) return 0;
+
+                    let score = 0;
+                    if (password.length >= 12) score += 3;
+                    else if (password.length >= 8) score += 2;
+                    else if (password.length >= 4) score += 1;
+                    if (/[a-z]/.test(password)) score += 1;
+                    if (/[A-Z]/.test(password)) score += 1;
+                    if (/[0-9]/.test(password)) score += 1;
+                    if (/[^a-zA-Z0-9]/.test(password)) score += 2;
+                    if (/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{10,}$/.test(password)) score += 2;
+
+                    // 长度小于8的密码最多只能达到“弱”等级（≤3分）
+                    if (password.length < 8) {
+                        score = Math.min(score, 3);
+                    }
+
+                    return Math.min(10, score);
+                }
+            }
+
+            // ---------- Worker 代码（动态块大小支持）----------
+            const WORKER_CODE = `"use strict";
+            class VaultWorker {
+                constructor() {
+                    this.MARKER = 'bird';
+                    this.SALT_SIZE = 16;
+                    this.IV_SIZE = 12;
+                    this.MAX_ITERATIONS = 2000000;
+                    this.MIN_ITERATIONS = 10000;
+                    this.CHUNK_SIZE = 1024 * 1024;
+                    this.MAX_PAYLOAD_CHUNK = 65536;      // 默认64KB，可由参数覆盖
+                    this.SESSION_ID_SIZE = 16;
+                    this.crcTable = this.makeCrcTable();
+                    this.COMMON_TEXTLABELS = [
+                        'Comment', 'Description', 'Author', 'Copyright', 'Creation Time',
+                        'Software', 'Disclaimer', 'Warning', 'Note', 'History',
+                        'Title', 'Subject', 'Keywords', 'Producer', 'Creator'
+                    ];
+                    if (typeof CompressionStream === 'undefined' || typeof DecompressionStream === 'undefined') {
+                        throw new Error('当前浏览器不支持 CompressionStream，无法使用zTXt隐写。请升级至Chrome 80+ / Edge 80+ / Firefox 110+');
+                    }
+                }
+
+                formatIterations(iter) {
+                    if (iter >= 1000000) return (iter/1000000).toFixed(1) + 'M';
+                    if (iter >= 1000) return (iter/1000).toFixed(0) + 'K';
+                    return iter;
+                }
+
+                randomBytes(size) {
+                    const arr = new Uint8Array(size);
+                    crypto.getRandomValues(arr);
+                    return arr;
+                }
+
+                async deriveKey(password, salt, iterations) {
+                    const enc = new TextEncoder();
+                    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+                    return crypto.subtle.deriveKey(
+                        { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+                        keyMaterial,
+                        { name: 'AES-GCM', length: 256 },
+                        false,
+                        ['encrypt', 'decrypt']
+                    );
+                }
+
+                async computeHash(data) {
+                    const hash = await crypto.subtle.digest('SHA-256', data);
+                    const bytes = new Uint8Array(hash);
+                    let binary = '';
+                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                    return btoa(binary);
+                }
+
+                concatArrays(arrays) {
+                    let total = 0;
+                    for (const a of arrays) total += a.length;
+                    const res = new Uint8Array(total);
+                    let offset = 0;
+                    for (const a of arrays) { res.set(a, offset); offset += a.length; }
+                    return res;
+                }
+
+                writeUint32(v) {
+                    const arr = new Uint8Array(4);
+                    new DataView(arr.buffer).setUint32(0, v, false);
+                    return arr;
+                }
+
+                readUint32(arr, offset) {
+                    return new DataView(arr.buffer, offset, 4).getUint32(0, false);
+                }
+
+                wipeBuffer(buffer) {
+                    if (!buffer) return;
+                    try {
+                        let arrayBuffer = buffer.buffer ? buffer.buffer : buffer;
+                        if (arrayBuffer && arrayBuffer.byteLength) {
+                            new Uint8Array(arrayBuffer).fill(0);
+                            new Uint8Array(arrayBuffer).fill(0xAA);
+                            new Uint8Array(arrayBuffer).fill(0);
+                        }
+                    } catch (e) {}
+                }
+
+                makeCrcTable() {
+                    let c;
+                    const table = new Array(256);
+                    for (let n = 0; n < 256; n++) {
+                        c = n;
+                        for (let k = 0; k < 8; k++) {
+                            c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                        }
+                        table[n] = c >>> 0;
+                    }
+                    return table;
+                }
+
+                crc32(data) {
+                    const table = this.crcTable;
+                    let crc = 0 ^ (-1);
+                    for (let i = 0; i < data.length; i++) {
+                        crc = (crc >>> 8) ^ table[(crc ^ data[i]) & 0xFF];
+                    }
+                    return (crc ^ (-1)) >>> 0;
+                }
+
+                isPNG(data) {
+                    const arr = new Uint8Array(data);
+                    return arr.length >= 8 &&
+                           arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47 &&
+                           arr[4] === 0x0D && arr[5] === 0x0A && arr[6] === 0x1A && arr[7] === 0x0A;
+                }
+
+                isJPEG(data) {
+                    const arr = new Uint8Array(data);
+                    return arr.length >= 2 && arr[0] === 0xFF && arr[1] === 0xD8;
+                }
+
+                async compress(data) {
+                    const cs = new CompressionStream('deflate');
+                    const writer = cs.writable.getWriter();
+                    writer.write(data);
+                    writer.close();
+                    const reader = cs.readable.getReader();
+                    const chunks = [];
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                    }
+                    const total = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                    const result = new Uint8Array(total);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        result.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    return result;
+                }
+
+                async decompress(data) {
+                    const ds = new DecompressionStream('deflate');
+                    const writer = ds.writable.getWriter();
+                    writer.write(data);
+                    writer.close();
+                    const reader = ds.readable.getReader();
+                    const chunks = [];
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                    }
+                    const total = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                    const result = new Uint8Array(total);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        result.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    return result;
+                }
+
+                async embedPayloadIntoPNG(cover, payload, progressCallback) {
+                    const view = new Uint8Array(cover);
+                    const chunks = [];
+                    let offset = 8;
+                    while (offset < view.length) {
+                        const length = this.readUint32(view, offset);
+                        const type = String.fromCharCode(...view.slice(offset+4, offset+8));
+                        const data = view.slice(offset+8, offset+8+length);
+                        const crc = this.readUint32(view, offset+8+length);
+                        chunks.push({ length, type, data, crc, start: offset });
+                        offset += 12 + length;
+                        if (type === 'IEND') break;
+                    }
+                    const iendChunk = chunks.pop();
+
+                    const sessionId = this.randomBytes(this.SESSION_ID_SIZE);
+                    const payloadChunks = [];
+                    for (let i = 0; i < payload.length; i += this.MAX_PAYLOAD_CHUNK) {
+                        const chunkData = payload.slice(i, Math.min(i+this.MAX_PAYLOAD_CHUNK, payload.length));
+                        payloadChunks.push(chunkData);
+                    }
+
+                    const newChunks = [];
+                    for (let idx = 0; idx < payloadChunks.length; idx++) {
+                        if (progressCallback) {
+                            progressCallback(idx, payloadChunks.length);
+                        }
+                        const seqBytes = this.writeUint32(idx);
+                        const uncompressed = this.concatArrays([sessionId, seqBytes, payloadChunks[idx]]);
+                        const compressed = await this.compress(uncompressed);
+                        const keyword = this.COMMON_TEXTLABELS[Math.floor(Math.random() * this.COMMON_TEXTLABELS.length)];
+                        const keywordBytes = new TextEncoder().encode(keyword);
+                        const chunkData = this.concatArrays([
+                            keywordBytes,
+                            new Uint8Array([0]),
+                            new Uint8Array([0]),
+                            compressed
+                        ]);
+                        const length = chunkData.length;
+                        const typeBytes = new TextEncoder().encode('zTXt');
+                        const crcData = this.concatArrays([typeBytes, chunkData]);
+                        const crc = this.crc32(crcData);
+                        const lenArr = this.writeUint32(length);
+                        const crcArr = this.writeUint32(crc);
+                        const fullChunk = this.concatArrays([lenArr, typeBytes, chunkData, crcArr]);
+                        newChunks.push(fullChunk);
+                    }
+
+                    const resultChunks = [];
+                    resultChunks.push(view.slice(0, 8));
+                    for (const c of chunks) {
+                        const lenArr = this.writeUint32(c.length);
+                        const typeBytes = new TextEncoder().encode(c.type);
+                        const crcArr = this.writeUint32(c.crc);
+                        resultChunks.push(this.concatArrays([lenArr, typeBytes, c.data, crcArr]));
+                    }
+                    for (const nc of newChunks) resultChunks.push(nc);
+                    const iendLen = this.writeUint32(0);
+                    const iendType = new TextEncoder().encode('IEND');
+                    const iendCrc = this.writeUint32(this.crc32(iendType));
+                    resultChunks.push(this.concatArrays([iendLen, iendType, iendCrc]));
+
+                    return this.concatArrays(resultChunks).buffer;
+                }
+
+                async extractPayloadFromPNG(img) {
+                    const view = new Uint8Array(img);
+                    const ztxtChunks = [];
+                    let offset = 8;
+                    while (offset < view.length) {
+                        const length = this.readUint32(view, offset);
+                        const typeBytes = view.slice(offset+4, offset+8);
+                        const type = String.fromCharCode(...typeBytes);
+                        const data = view.slice(offset+8, offset+8+length);
+                        offset += 12 + length;
+                        if (type === 'zTXt') {
+                            let keywordEnd = 0;
+                            while (keywordEnd < data.length && data[keywordEnd] !== 0) keywordEnd++;
+                            if (keywordEnd >= data.length) continue;
+                            const compressionMethod = data[keywordEnd + 1];
+                            if (compressionMethod !== 0) continue;
+                            const compressedData = data.slice(keywordEnd + 2);
+                            ztxtChunks.push(compressedData);
+                        }
+                        if (type === 'IEND') break;
+                    }
+                    if (ztxtChunks.length === 0) return null;
+                    const candidates = [];
+                    for (let i = 0; i < ztxtChunks.length; i++) {
+                        try {
+                            const uncompressed = await this.decompress(ztxtChunks[i]);
+                            if (uncompressed.length < this.SESSION_ID_SIZE + 4) continue;
+                            const sessionId = uncompressed.slice(0, this.SESSION_ID_SIZE);
+                            const seq = this.readUint32(uncompressed, this.SESSION_ID_SIZE);
+                            const data = uncompressed.slice(this.SESSION_ID_SIZE + 4);
+                            const sessionHex = Array.from(sessionId).map(b => b.toString(16).padStart(2,'0')).join('');
+                            candidates.push({ sessionId: sessionHex, seq, data });
+                        } catch (e) {}
+                    }
+                    if (candidates.length === 0) return null;
+
+                    // 统计每个会话ID出现的次数
+                    const freq = {};
+                    for (const c of candidates) {
+                        freq[c.sessionId] = (freq[c.sessionId] || 0) + 1;
+                    }
+
+                    // 找出最大出现次数
+                    let maxCount = 0;
+                    for (const cnt of Object.values(freq)) {
+                        if (cnt > maxCount) maxCount = cnt;
+                    }
+
+                    // 收集所有达到最大次数的会话ID
+                    const topSessions = Object.keys(freq).filter(sid => freq[sid] === maxCount);
+
+                    // 如果有多个会话ID出现次数相同，进一步选择序列最完整且无重复的
+                    let selectedSession = null;
+                    let bestScore = -1; // 分数越高表示序列越完整
+                    let bestDataLength = 0; // 用于分数相同时比较数据总长度
+
+                    for (const sid of topSessions) {
+                        const sessionCandidates = candidates.filter(c => c.sessionId === sid);
+                        sessionCandidates.sort((a, b) => a.seq - b.seq);
+
+                        // 检查是否有重复序列
+                        const seenSeq = new Set();
+                        let hasDuplicate = false;
+                        for (const c of sessionCandidates) {
+                            if (seenSeq.has(c.seq)) {
+                                hasDuplicate = true;
+                                break;
+                            }
+                            seenSeq.add(c.seq);
+                        }
+                        if (hasDuplicate) continue; // 有重复序列，跳过
+
+                        // 检查序列是否连续 (0,1,2,...)
+                        let isContinuous = true;
+                        for (let i = 0; i < sessionCandidates.length; i++) {
+                            if (sessionCandidates[i].seq !== i) {
+                                isContinuous = false;
+                                break;
+                            }
+                        }
+
+                        // 计算分数：连续且长度越长分数越高
+                        const score = isContinuous ? sessionCandidates.length : 0;
+                        // 计算此会话的总数据长度
+                        const totalDataLen = sessionCandidates.reduce((acc, c) => acc + c.data.length, 0);
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestDataLength = totalDataLen;
+                            selectedSession = sid;
+                        } else if (score === bestScore && score > 0) {
+                            // 分数相同且不为0时，选择数据总长度更大的
+                            if (totalDataLen > bestDataLength) {
+                                bestDataLength = totalDataLen;
+                                selectedSession = sid;
+                            }
+                        }
+                    }
+
+                    // 如果仍未选出，则简单选择第一个（理论上几乎不会发生）
+                    if (!selectedSession && topSessions.length > 0) {
+                        selectedSession = topSessions[0];
+                    }
+                    if (!selectedSession) return null;
+
+                    // 提取选中的会话ID对应的所有块，并按序列排序
+                    const selected = candidates.filter(c => c.sessionId === selectedSession);
+                    selected.sort((a, b) => a.seq - b.seq);
+
+                    // 再次验证无重复序列和连续性（确保）
+                    const seenSeq = new Set();
+                    for (const c of selected) {
+                        if (seenSeq.has(c.seq)) return null;
+                        seenSeq.add(c.seq);
+                    }
+                    for (let i = 0; i < selected.length; i++) {
+                        if (selected[i].seq !== i) return null;
+                    }
+
+                    const totalDataLen = selected.reduce((acc, c) => acc + c.data.length, 0);
+                    const result = new Uint8Array(totalDataLen);
+                    let pos = 0;
+                    for (const c of selected) {
+                        result.set(c.data, pos);
+                        pos += c.data.length;
+                    }
+                    if (result.length < 4) return null;
+                    const expectedTotalLen = this.readUint32(result, 0);
+                    if (expectedTotalLen !== result.length) {
+                        throw new Error('PNG分块数据不完整：实际长度 ' + result.length + '，预期 ' + expectedTotalLen);
+                    }
+                    return result.buffer;
+                }
+
+                embedPayloadIntoJPEG(cover, payload) {
+                    const view = new Uint8Array(cover);
+                    const payloadView = new Uint8Array(payload);
+                    const combined = this.concatArrays([view, payloadView]);
+                    return combined.buffer;
+                }
+
+                extractPayloadFromJPEG(img) {
+                    const view = new Uint8Array(img);
+                    const markerBytes = new TextEncoder().encode(this.MARKER);
+                    for (let i = view.length - markerBytes.length; i >= 0; i--) {
+                        let found = true;
+                        for (let j = 0; j < markerBytes.length; j++) {
+                            if (view[i + j] !== markerBytes[j]) { found = false; break; }
+                        }
+                        if (found) {
+                            const payloadStart = i - 4;
+                            if (payloadStart >= 0) {
+                                const len = this.readUint32(view, payloadStart);
+                                if (payloadStart + len === view.length) {
+                                    return view.slice(payloadStart).buffer;
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                }
+
+                // 加密方法增加 chunkSize 参数
+                async encrypt(coverArray, secretArray, secretMetadata, password, iterations, chunkSize, progressCallback) {
+                    try {
+                        // 如果传入了 chunkSize，则覆盖默认块大小
+                        if (chunkSize && chunkSize > 0) {
+                            this.MAX_PAYLOAD_CHUNK = chunkSize;
+                        }
+                        progressCallback(5, '准备加密...');
+                        const secretView = new Uint8Array(secretArray);
+
+                        const salt = this.randomBytes(this.SALT_SIZE);
+                        const ivMeta = this.randomBytes(this.IV_SIZE);
+                        const ivFile = this.randomBytes(this.IV_SIZE);
+
+                        progressCallback(15, '加盐 & 密钥派生');
+                        const key = await this.deriveKey(password, salt, iterations);
+
+                        const fileHash = await this.computeHash(secretArray);
+                        const metadata = {
+                            name: secretMetadata.name,
+                            size: secretMetadata.size,
+                            type: secretMetadata.type || 'application/octet-stream',
+                            timestamp: Date.now(),
+                            iterations: iterations,
+                            hash: fileHash
+                        };
+                        const metadataStr = JSON.stringify(metadata);
+                        const metadataBytes = new TextEncoder().encode(metadataStr);
+
+                        const aadMeta = this.concatArrays([salt, ivMeta]);
+                        const encryptedMeta = await crypto.subtle.encrypt(
+                            { name: 'AES-GCM', iv: ivMeta, additionalData: aadMeta, tagLength: 128 },
+                            key,
+                            metadataBytes
+                        );
+                        const encryptedMetaArray = new Uint8Array(encryptedMeta);
+
+                        const aadFile = this.concatArrays([salt, ivFile]);
+                        const totalChunks = Math.ceil(secretView.length / this.CHUNK_SIZE);
+                        const encryptedChunks = [];
+                        for (let i = 0; i < totalChunks; i++) {
+                            const start = i * this.CHUNK_SIZE;
+                            const end = Math.min(start + this.CHUNK_SIZE, secretView.length);
+                            const chunk = secretView.subarray(start, end);
+
+                            const chunkIv = new Uint8Array(ivFile.length);
+                            chunkIv.set(ivFile);
+                            const indexBytes = this.writeUint32(i);
+                            for (let j = 0; j < 4 && j < chunkIv.length; j++) {
+                                chunkIv[j] ^= indexBytes[j];
+                            }
+
+                            const encryptedChunk = await crypto.subtle.encrypt(
+                                { name: 'AES-GCM', iv: chunkIv, additionalData: aadFile, tagLength: 128 },
+                                key,
+                                chunk
+                            );
+                            encryptedChunks.push(new Uint8Array(encryptedChunk));
+
+                            const prog = 30 + Math.round(((i + 1) / totalChunks) * 40);
+                            progressCallback(prog, \`加密数据... (\${i+1}/\${totalChunks})\`);
+                        }
+
+                        const encryptedArray = this.concatArrays(encryptedChunks);
+
+                        progressCallback(80, '构造加密载荷...');
+                        const markerBytes = new TextEncoder().encode(this.MARKER);
+                        const payloadBody = this.concatArrays([
+                            markerBytes,
+                            this.writeUint32(iterations),
+                            salt,
+                            ivMeta,
+                            this.writeUint32(encryptedMetaArray.length),
+                            encryptedMetaArray,
+                            ivFile,
+                            this.writeUint32(encryptedArray.length),
+                            encryptedArray
+                        ]);
+                        const payloadTotalLen = 4 + payloadBody.length;
+                        const payload = this.concatArrays([
+                            this.writeUint32(payloadTotalLen),
+                            payloadBody
+                        ]);
+
+                        progressCallback(85, '嵌入图片...');
+                        let finalBuffer;
+                        if (this.isPNG(coverArray)) {
+                            const totalPayloadChunks = Math.ceil(payload.length / this.MAX_PAYLOAD_CHUNK);
+                            let embedProgressBase = 85;
+                            let embedProgressRange = 10;
+                            let embedCallback = (idx, total) => {
+                                let percent = embedProgressBase + (idx / total) * embedProgressRange;
+                                progressCallback(percent, \`压缩数据块 \${idx+1}/\${total}\`);
+                            };
+                            finalBuffer = await this.embedPayloadIntoPNG(new Uint8Array(coverArray), new Uint8Array(payload), embedCallback);
+                            progressCallback(95, '组装PNG...');
+                        } else if (this.isJPEG(coverArray)) {
+                            finalBuffer = this.embedPayloadIntoJPEG(new Uint8Array(coverArray), new Uint8Array(payload));
+                        } else {
+                            throw new Error('不支持的图片格式，仅PNG/JPEG');
+                        }
+
+                        progressCallback(100, '加密完成');
+                        return finalBuffer;
+                    } catch(e) {
+                        throw new Error('加密失败: ' + e.message);
+                    } finally {
+                        this.wipeBuffer(secretArray);
+                        this.wipeBuffer(coverArray);
+                    }
+                }
+
+                async decrypt(encryptedArray, password, progressCallback) {
+                    try {
+                        progressCallback(5, '解析加密图片');
+                        const fileArray = new Uint8Array(encryptedArray);
+                        let payloadBuffer;
+
+                        if (this.isPNG(fileArray)) {
+                            payloadBuffer = await this.extractPayloadFromPNG(fileArray);
+                        } else if (this.isJPEG(fileArray)) {
+                            payloadBuffer = this.extractPayloadFromJPEG(fileArray);
+                        } else {
+                            return { success: false, errorCode: 'UNSUPPORTED', error: '不支持的文件格式' };
+                        }
+
+                        if (!payloadBuffer) {
+                            return { success: false, errorCode: 'NO_MARKER', error: '未找到嵌入数据，可能文件被修改或不是本工具生成' };
+                        }
+
+                        const payloadView = new Uint8Array(payloadBuffer);
+                        if (payloadView.length < 4) {
+                            return { success: false, errorCode: 'METADATA_CORRUPT', error: '文件损坏：载荷长度不足' };
+                        }
+                        const expectedTotalLen = this.readUint32(payloadView, 0);
+                        if (expectedTotalLen !== payloadView.length) {
+                            return { success: false, errorCode: 'METADATA_CORRUPT', error: '文件损坏：载荷总长度校验失败' };
+                        }
+
+                        const markerBytes = new TextEncoder().encode(this.MARKER);
+                        for (let j = 0; j < markerBytes.length; j++) {
+                            if (payloadView[4 + j] !== markerBytes[j]) {
+                                return { success: false, errorCode: 'NO_MARKER', error: '不是本工具加密的有效文件' };
+                            }
+                        }
+
+                        let offset = 4 + markerBytes.length;
+                        const iterations = this.readUint32(payloadView, offset); offset += 4;
+                        const salt = payloadView.slice(offset, offset + this.SALT_SIZE); offset += this.SALT_SIZE;
+                        const ivMeta = payloadView.slice(offset, offset + this.IV_SIZE); offset += this.IV_SIZE;
+                        const metaLen = this.readUint32(payloadView, offset); offset += 4;
+                        if (metaLen > 65536 || offset + metaLen > payloadView.length) 
+                            return { success: false, errorCode: 'METADATA_CORRUPT', error: '文件损坏：元数据长度不合法' };
+                        const encryptedMeta = payloadView.slice(offset, offset + metaLen); offset += metaLen;
+                        const ivFile = payloadView.slice(offset, offset + this.IV_SIZE); offset += this.IV_SIZE;
+                        const encLen = this.readUint32(payloadView, offset); offset += 4;
+                        if (encLen > payloadView.length - offset) return { success: false, errorCode: 'DATA_LENGTH', error: '文件损坏：加密数据长度不匹配' };
+                        const encryptedData = payloadView.slice(offset, offset + encLen);
+
+                        if (iterations < this.MIN_ITERATIONS || iterations > this.MAX_ITERATIONS) {
+                            return { success: false, errorCode: 'INVALID_ITERATIONS', error: '迭代次数无效或超出安全范围' };
+                        }
+
+                        progressCallback(25, '派生密钥 (' + this.formatIterations(iterations) + '次迭代)');
+                        const key = await this.deriveKey(password, salt, iterations);
+
+                        const aadMeta = this.concatArrays([salt, ivMeta]);
+                        let metadata;
+                        try {
+                            const decryptedMeta = await crypto.subtle.decrypt(
+                                { name: 'AES-GCM', iv: ivMeta, additionalData: aadMeta, tagLength: 128 },
+                                key,
+                                encryptedMeta
+                            );
+                            metadata = JSON.parse(new TextDecoder().decode(decryptedMeta));
+                        } catch (e) {
+                            if (e.name === 'OperationError') {
+                                return { success: false, errorCode: 'DECRYPT_MAC', error: '密码错误或数据损坏（元数据MAC验证失败）' };
+                            }
+                            return { success: false, errorCode: 'METADATA_DECRYPT', error: '元数据解密失败: ' + e.message };
+                        }
+
+                        if (metadata.iterations !== iterations) {
+                            console.warn('元数据中迭代次数与前置值不一致，可能文件被篡改');
+                        }
+
+                        const aadFile = this.concatArrays([salt, ivFile]);
+                        const originalSize = metadata.size;
+                        const totalChunks = Math.ceil(originalSize / this.CHUNK_SIZE);
+                        const decryptedChunks = [];
+                        let encOffset = 0;
+                        for (let i = 0; i < totalChunks; i++) {
+                            const isLast = i === totalChunks - 1;
+                            const plainChunkSize = isLast ? originalSize - i * this.CHUNK_SIZE : this.CHUNK_SIZE;
+                            const encryptedChunkSize = plainChunkSize + 16;
+
+                            if (encOffset + encryptedChunkSize > encryptedData.length) {
+                                return { success: false, errorCode: 'DATA_CORRUPT', error: '加密数据块长度不匹配' };
+                            }
+
+                            const encryptedChunk = encryptedData.slice(encOffset, encOffset + encryptedChunkSize);
+                            encOffset += encryptedChunkSize;
+
+                            const chunkIv = new Uint8Array(ivFile.length);
+                            chunkIv.set(ivFile);
+                            const indexBytes = this.writeUint32(i);
+                            for (let j = 0; j < 4 && j < chunkIv.length; j++) {
+                                chunkIv[j] ^= indexBytes[j];
+                            }
+
+                            let decryptedChunk;
+                            try {
+                                decryptedChunk = await crypto.subtle.decrypt(
+                                    { name: 'AES-GCM', iv: chunkIv, additionalData: aadFile, tagLength: 128 },
+                                    key,
+                                    encryptedChunk
+                                );
+                            } catch (e) {
+                                if (e.name === 'OperationError') {
+                                    return { success: false, errorCode: 'DECRYPT_MAC', error: '密码错误或数据损坏（文件数据MAC验证失败）' };
+                                }
+                                return { success: false, errorCode: 'DECRYPT_FAIL', error: '解密失败: ' + e.message };
+                            }
+
+                            decryptedChunks.push(new Uint8Array(decryptedChunk));
+
+                            const prog = 50 + Math.round(((i + 1) / totalChunks) * 40);
+                            progressCallback(prog, \`解密数据... (\${i+1}/\${totalChunks})\`);
+                        }
+
+                        const finalData = this.concatArrays(decryptedChunks);
+                        progressCallback(90, '完整性验证...');
+                        const computedHash = await this.computeHash(finalData.buffer);
+                        if (computedHash !== metadata.hash) {
+                            return { success: false, errorCode: 'HASH_MISMATCH', error: '完整性校验失败，文件可能被篡改' };
+                        }
+                        progressCallback(100, '解密成功');
+                        return { success: true, data: finalData.buffer, metadata, integrityValid: true };
+                    } catch(e) {
+                        if (e.message && e.message.includes('PNG分块数据不完整')) {
+                            return { success: false, errorCode: 'METADATA_CORRUPT', error: e.message };
+                        }
+                        return { success: false, errorCode: 'UNKNOWN', error: '解密异常: ' + e.message };
+                    } finally { this.wipeBuffer(encryptedArray); }
+                }
+            }
+
+            const vaultWorker = new VaultWorker();
+            self.addEventListener('message', async (e) => {
+                const msg = e.data;
+                try {
+                    if (msg.action === 'encrypt') {
+                        const result = await vaultWorker.encrypt(
+                            msg.coverArray, msg.secretArray, msg.secretMetadata, msg.password, msg.iterations, msg.chunkSize,
+                            (percent, text) => { self.postMessage({ type: 'progress', percent, text }); }
+                        );
+                        self.postMessage({ type: 'result', action: 'encrypt', data: result, metadata: msg.secretMetadata }, [result]);
+                    } else if (msg.action === 'decrypt') {
+                        const result = await vaultWorker.decrypt(
+                            msg.encryptedArray, msg.password,
+                            (percent, text) => { self.postMessage({ type: 'progress', percent, text }); }
+                        );
+                        if (result.success) {
+                            self.postMessage({ type: 'result', action: 'decrypt', data: result.data, metadata: result.metadata }, [result.data]);
+                        } else {
+                            self.postMessage({ type: 'error', errorCode: result.errorCode, message: result.error });
+                        }
+                    }
+                } catch (err) {
+                    self.postMessage({ type: 'error', errorCode: 'WORKER_EXCEPTION', message: err.message });
+                }
+            });
+            `;
+
+            // ---------- WorkerHandler 类 ----------
+            class WorkerHandler {
+                constructor(ui) {
+                    this.ui = ui;
+                    this.worker = null;
+                    this.workerUrl = null;
+                    this.isProcessing = false;
+                    this.currentMode = null;
+                    this.currentProgressBar = null;
+                    this.currentProgressText = null;
+                    this.currentProgressContainer = null;
+                    this.currentEncryptBtn = null;
+                    this.currentDecryptBtn = null;
+                    this.currentMessageId = null;
+                }
+
+                initWorker() {
+                    this.terminateWorker();
+                    const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    this.workerUrl = url;
+                    this.worker = new Worker(url);
+                }
+
+                setCurrentProgress(bar, text, container, encryptBtn, decryptBtn, messageId, mode) {
+                    this.currentProgressBar = bar;
+                    this.currentProgressText = text;
+                    this.currentProgressContainer = container;
+                    this.currentEncryptBtn = encryptBtn;
+                    this.currentDecryptBtn = decryptBtn;
+                    this.currentMessageId = messageId;
+                    this.currentMode = mode;
+                }
+
+                handleWorkerMessage(e) {
+                    const msg = e.data;
+                    if (msg.type === 'progress') {
+                        if (this.currentProgressBar && this.currentProgressText) {
+                            const base = 30;
+                            const range = 70;
+                            const mappedPercent = base + (msg.percent / 100) * range;
+                            this.currentProgressBar.style.width = mappedPercent + '%';
+                            this.currentProgressText.textContent = msg.text;
+                            if (this.currentProgressContainer) {
+                                this.currentProgressContainer.setAttribute('aria-valuenow', Math.round(mappedPercent));
+                                this.currentProgressContainer.setAttribute('aria-valuetext', msg.text);
+                            }
+                        }
+                    } else if (msg.type === 'result') {
+                        if (msg.action === 'encrypt') {
+                            this.ui.handleEncryptResult(msg.data, msg.metadata);
+                        } else if (msg.action === 'decrypt') {
+                            this.ui.handleDecryptResult(msg.data, msg.metadata);
+                        }
+                        this.finishProcessing();
+                    } else if (msg.type === 'error') {
+                        let userMessage = msg.message;
+                        if (msg.errorCode === 'DECRYPT_MAC') {
+                            userMessage = '密码错误或数据损坏（MAC验证失败）';
+                        } else if (msg.errorCode === 'HASH_MISMATCH') {
+                            userMessage = '完整性校验失败，文件可能被篡改';
+                        } else if (msg.errorCode === 'NO_MARKER') {
+                            userMessage = '不是本工具加密的有效文件或文件已损坏';
+                        } else if (msg.errorCode === 'METADATA_CORRUPT' || msg.errorCode === 'METADATA_PARSE') {
+                            userMessage = '文件损坏：' + msg.message;
+                        } else if (msg.errorCode === 'DATA_LENGTH') {
+                            userMessage = '文件损坏：加密数据长度不匹配';
+                        } else if (msg.errorCode === 'INVALID_ITERATIONS') {
+                            userMessage = '迭代次数无效';
+                        } else if (msg.errorCode === 'DATA_CORRUPT') {
+                            userMessage = '加密数据块损坏';
+                        } else if (msg.errorCode === 'METADATA_DECRYPT') {
+                            userMessage = '元数据解密失败，密码可能错误';
+                        }
+                        this.ui.showMessage(this.currentMessageId, userMessage, 'error');
+                        this.ui.clearPendingInfo();
+                        this.finishProcessing();
+                    } else if (msg.type === 'cancel') {
+                        this.ui.showMessage(this.currentMessageId, '操作已取消', 'info');
+                        this.ui.clearPendingInfo();
+                        this.finishProcessing();
+                    }
+                }
+
+                finishProcessing() {
+                    if (this.currentMode === 'encrypt') {
+                        this.ui.setEncrypting(false);
+                    } else if (this.currentMode === 'decrypt') {
+                        this.ui.setDecrypting(false);
+                    }
+                    this.isProcessing = false;
+                    if (this.currentProgressContainer) {
+                        this.currentProgressContainer.classList.remove('active');
+                        this.currentProgressContainer.setAttribute('aria-valuenow', '0');
+                        this.currentProgressContainer.setAttribute('aria-valuetext', '等待开始');
+                    }
+                    if (this.currentEncryptBtn) this.currentEncryptBtn.disabled = false;
+                    if (this.currentDecryptBtn) this.currentDecryptBtn.disabled = false;
+                    this.currentProgressBar = null;
+                    this.currentProgressText = null;
+                    this.currentProgressContainer = null;
+                    this.currentEncryptBtn = null;
+                    this.currentDecryptBtn = null;
+                    this.currentMessageId = null;
+                    this.currentMode = null;
+                    this.terminateWorker();
+                    this.ui.enableModeTabs(true);
+                    this.ui.clearPendingInfo();
+                }
+
+                // 增加 chunkSize 参数传递
+                postEncrypt(data, coverBuffer, secretBuffer, chunkSize) {
+                    if (this.isProcessing) return;
+                    this.terminateWorker();
+                    this.initWorker();
+                    this.worker.onmessage = (e) => this.handleWorkerMessage(e);
+                    this.worker.onerror = (err) => {
+                        console.error('Worker error:', err);
+                        this.ui.showMessage(this.currentMessageId || CONSTANTS.MSG_ENCRYPT, 'Worker内部错误：' + (err.message || '未知错误'), 'error');
+                        this.finishProcessing();
+                    };
+                    this.isProcessing = true;
+                    // 将 chunkSize 加入消息
+                    this.worker.postMessage({ action: 'encrypt', ...data, chunkSize }, [coverBuffer, secretBuffer]);
+                }
+
+                postDecrypt(data, encryptedBuffer) {
+                    if (this.isProcessing) return;
+                    this.terminateWorker();
+                    this.initWorker();
+                    this.worker.onmessage = (e) => this.handleWorkerMessage(e);
+                    this.worker.onerror = (err) => {
+                        console.error('Worker error:', err);
+                        this.ui.showMessage(this.currentMessageId || CONSTANTS.MSG_DECRYPT, 'Worker内部错误：' + (err.message || '未知错误'), 'error');
+                        this.finishProcessing();
+                    };
+                    this.isProcessing = true;
+                    this.worker.postMessage({ action: 'decrypt', ...data }, [encryptedBuffer]);
+                }
+
+                abortCurrent() {
+                    this.terminateWorker();
+                    this.isProcessing = false;
+                    if (this.currentProgressContainer) {
+                        this.currentProgressContainer.classList.remove('active');
+                        this.currentProgressContainer.setAttribute('aria-valuenow', '0');
+                        this.currentProgressContainer.setAttribute('aria-valuetext', '等待开始');
+                    }
+                    if (this.currentEncryptBtn) this.currentEncryptBtn.disabled = false;
+                    if (this.currentDecryptBtn) this.currentDecryptBtn.disabled = false;
+                    this.currentProgressBar = null;
+                    this.currentProgressText = null;
+                    this.currentProgressContainer = null;
+                    this.currentEncryptBtn = null;
+                    this.currentDecryptBtn = null;
+                    this.currentMessageId = null;
+                    this.currentMode = null;
+                    this.ui.enableModeTabs(true);
+                    this.ui.clearPendingInfo();
+                }
+
+                terminateWorker() {
+                    if (this.worker) {
+                        this.worker.terminate();
+                        this.worker = null;
+                    }
+                    if (this.workerUrl) {
+                        URL.revokeObjectURL(this.workerUrl);
+                        this.workerUrl = null;
+                    }
+                    this.isProcessing = false;
+                }
+            }
+
+            // ---------- VaultUI 类 ----------
+            class VaultUI {
+                constructor() {
+                    this.workerHandler = new WorkerHandler(this);
+                    this.downloadUrls = new Map();
+                    this.countdownTimers = {};
+                    this.cancelHandlers = {};
+                    this.encryptImageFile = null;
+                    this.encryptSecretFile = null;
+                    this.decryptFile = null;
+                    this.pendingCoverInfo = null;
+                    this.titleClickCount = 0;
+                    this.operationToken = 0;
+                    this.isEncrypting = false;
+                    this.isDecrypting = false;
+                    this.currentEasterTip = null; // 用于存储当前显示的彩蛋提示元素
+                    this.elements = this.collectElements();
+                    this.initElements();
+                    this.bindEvents();
+                    this.loadIterationsPreference();
+                    this.checkBrowserSupport();
+                    this.initAria();
+                }
+
+                initAria() {
+                    const encryptPanel = document.getElementById('encrypt-mode');
+                    const decryptPanel = document.getElementById('decrypt-mode');
+                    if (encryptPanel) encryptPanel.classList.remove('hidden');
+                    if (decryptPanel) decryptPanel.classList.add('hidden');
+                    const progEnc = this.elements.encryptProgress;
+                    const progDec = this.elements.decryptProgress;
+                    if (progEnc) { progEnc.setAttribute('aria-valuenow', '0'); progEnc.setAttribute('aria-valuetext', '等待开始'); }
+                    if (progDec) { progDec.setAttribute('aria-valuenow', '0'); progDec.setAttribute('aria-valuetext', '等待开始'); }
+                    if (this.elements.toggleEncryptPassword) this.elements.toggleEncryptPassword.setAttribute('aria-pressed', 'false');
+                    if (this.elements.toggleEncryptConfirm) this.elements.toggleEncryptConfirm.setAttribute('aria-pressed', 'false');
+                    if (this.elements.toggleDecryptPassword) this.elements.toggleDecryptPassword.setAttribute('aria-pressed', 'false');
+                }
+
+                setEncrypting(flag) {
+                    this.isEncrypting = flag;
+                    this.enableModeTabs(!flag);
+                }
+
+                setDecrypting(flag) {
+                    this.isDecrypting = flag;
+                    this.enableModeTabs(!flag);
+                }
+
+                enableModeTabs(enable) {
+                    this.elements.modeTabs.forEach(tab => {
+                        if (enable) {
+                            tab.classList.remove('disabled');
+                            tab.removeAttribute('aria-disabled');
+                        } else {
+                            tab.classList.add('disabled');
+                            tab.setAttribute('aria-disabled', 'true');
+                        }
+                    });
+                }
+
+                collectElements() {
+                    return {
+                        encryptImageArea: document.getElementById('encrypt-image-area'),
+                        encryptImageInput: document.getElementById('encrypt-image-input'),
+                        encryptImageInfo: document.getElementById('encrypt-image-info'),
+                        encryptFileArea: document.getElementById('encrypt-file-area'),
+                        encryptFileInput: document.getElementById('encrypt-file-input'),
+                        encryptFileInfo: document.getElementById('encrypt-file-info'),
+                        decryptFileArea: document.getElementById('decrypt-file-area'),
+                        decryptFileInput: document.getElementById('decrypt-file-input'),
+                        decryptFileInfo: document.getElementById('decrypt-file-info'),
+                        outputName: document.getElementById('output-name'),
+                        securityLevel: document.getElementById('security-level'),
+                        encryptProgress: document.getElementById('encrypt-progress'),
+                        encryptProgressBar: document.getElementById('encrypt-progress-bar'),
+                        encryptProgressText: document.getElementById('encrypt-progress-text'),
+                        decryptProgress: document.getElementById('decrypt-progress'),
+                        decryptProgressBar: document.getElementById('decrypt-progress-bar'),
+                        decryptProgressText: document.getElementById('decrypt-progress-text'),
+                        encryptMessage: document.getElementById('encrypt-message'),
+                        decryptMessage: document.getElementById('decrypt-message'),
+                        startEncryptBtn: document.getElementById('start-encrypt-btn'),
+                        startDecryptBtn: document.getElementById('start-decrypt-btn'),
+                        burnTraceBtn: document.getElementById('burn-trace-btn'),
+                        encryptDownloadSection: document.getElementById('encrypt-download-section'),
+                        decryptDownloadSection: document.getElementById('decrypt-download-section'),
+                        downloadEncryptedLink: document.getElementById('download-encrypted-link'),
+                        downloadDecryptedLink: document.getElementById('download-decrypted-link'),
+                        encryptCountdown: document.getElementById('encrypt-countdown'),
+                        decryptCountdown: document.getElementById('decrypt-countdown'),
+                        encryptCancelBurn: document.getElementById('encrypt-cancel-burn'),
+                        decryptCancelBurn: document.getElementById('decrypt-cancel-burn'),
+                        decryptedFilename: document.getElementById('decrypted-filename'),
+                        decryptedFilesize: document.getElementById('decrypted-filesize'),
+                        integrityCheck: document.getElementById('integrity-check'),
+                        encryptionStrength: document.getElementById('encryption-strength'),
+                        fsaHint: document.getElementById('fsa-hint'),
+                        decryptPassword: document.getElementById('decrypt-password'),
+                        title: document.getElementById('birdyTitle'),
+                        easterEgg: document.getElementById('easterEgg'),
+                        modeTabs: document.querySelectorAll('.mode-tab'),
+                        modeContents: document.querySelectorAll('.mode-content'),
+                        password: document.getElementById('password'),
+                        confirmPassword: document.getElementById('confirm-password'),
+                        passwordStrength: document.getElementById('password-strength'),
+                        passwordStrengthText: document.getElementById('password-strength-text'),
+                        passwordMatchInfo: document.getElementById('password-match-info'),
+                        passwordDisplay: document.getElementById('password-display'),
+                        generatedPasswordText: document.getElementById('generated-password-text'),
+                        generatePasswordBtn: document.getElementById('generate-password-btn'),
+                        copyPasswordBtn: document.getElementById('copy-password-btn'),
+                        closePasswordBtn: document.getElementById('close-password-btn'),
+                        toggleEncryptPassword: document.getElementById('toggle-encrypt-password'),
+                        toggleEncryptConfirm: document.getElementById('toggle-encrypt-confirm'),
+                        toggleDecryptPassword: document.getElementById('toggle-decrypt-password'),
+                        keepJpegCheckbox: document.getElementById('keep-jpeg-checkbox')
+                    };
+                }
+
+                initElements() {
+                    if (window.showOpenFilePicker) {
+                        this.elements.fsaHint.style.display = 'inline-block';
+                    }
+                }
+
+                checkBrowserSupport() {
+                    const supported = window.crypto && window.crypto.subtle && window.crypto.getRandomValues;
+                    if (!supported) {
+                        const msg = '❌ 您的浏览器不支持 Web Crypto API，无法使用本工具';
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, msg, 'error');
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, msg, 'error');
+                        this.elements.startEncryptBtn.disabled = true;
+                        this.elements.startDecryptBtn.disabled = true;
+                    }
+                }
+
+                initUploadArea({ areaId, inputId, infoId, useAdvanced, isImage, msgId }) {
+                    const area = document.getElementById(areaId);
+                    const input = document.getElementById(inputId);
+                    const info = document.getElementById(infoId);
+                    if (!area || !input) return;
+
+                    let fileProp;
+                    if (areaId === 'encrypt-image-area') fileProp = 'encryptImageFile';
+                    else if (areaId === 'encrypt-file-area') fileProp = 'encryptSecretFile';
+                    else if (areaId === 'decrypt-file-area') fileProp = 'decryptFile';
+
+                    let dragCounter = 0;
+
+                    area.addEventListener('click', async () => {
+                        if ((areaId.includes('encrypt') && this.isEncrypting) || (areaId.includes('decrypt') && this.isDecrypting)) {
+                            return;
+                        }
+                        if (useAdvanced && window.showOpenFilePicker) {
+                            await this.pickFileWithPicker(info, isImage ? 'image' : null, msgId, fileProp, input);
+                        } else {
+                            input.click();
+                        }
+                    });
+
+                    area.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            area.click();
+                        }
+                    });
+
+                    input.addEventListener('change', async () => {
+                        if ((areaId.includes('encrypt') && this.isEncrypting) || (areaId.includes('decrypt') && this.isDecrypting)) {
+                            input.value = '';
+                            return;
+                        }
+                        if (input.files[0]) {
+                            await this.handleFileSelected(input, info, isImage, msgId, fileProp);
+                        }
+                    });
+
+                    area.addEventListener('dragover', (e) => e.preventDefault());
+                    area.addEventListener('dragenter', (e) => {
+                        e.preventDefault();
+                        dragCounter++;
+                        area.classList.add('drag-over');
+                    });
+                    area.addEventListener('dragleave', (e) => {
+                        e.preventDefault();
+                        dragCounter--;
+                        if (dragCounter === 0) area.classList.remove('drag-over');
+                    });
+                    area.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        dragCounter = 0;
+                        area.classList.remove('drag-over');
+                        const file = e.dataTransfer.files[0];
+                        if (file) {
+                            if ((areaId.includes('encrypt') && this.isEncrypting) || (areaId.includes('decrypt') && this.isDecrypting)) {
+                                return;
+                            }
+                            if (isImage) {
+                                const valid = await this.validateImageMagic(file);
+                                if (!valid) {
+                                    this.showMessage(msgId, '文件不是有效的PNG/JPEG图片', 'error');
+                                    return;
+                                }
+                            }
+                            this[fileProp] = file;
+                            input.value = '';
+                            const clearCallback = () => {
+                                this.workerHandler.abortCurrent();
+                                this.operationToken++;
+                                this[fileProp] = null;
+                                input.value = '';
+                                info.innerHTML = '';
+                                info.className = 'file-info';
+                                area.setAttribute('aria-label', areaId.includes('image') ? '选择封面图片，支持PNG或JPEG格式' : '选择要加密的文件，任意类型');
+                            };
+                            this.updateFileInfo(info, file, clearCallback);
+                            area.setAttribute('aria-label', `已选择文件：${file.name}，大小：${formatBytes(file.size)}，点击或拖拽可更换`);
+                        }
+                    });
+                }
+
+                async pickFileWithPicker(infoEl, expectedType, msgId, fileProp, input) {
+                    if (!window.showOpenFilePicker) return null;
+                    try {
+                        const [handle] = await window.showOpenFilePicker({ types: [{ description: '所有文件', accept: { '*/*': [] } }] });
+                        const file = await handle.getFile();
+                        if ((fileProp.includes('encrypt') && this.isEncrypting) || (fileProp.includes('decrypt') && this.isDecrypting)) {
+                            return null;
+                        }
+                        if (expectedType === 'image') {
+                            if (!file.type.startsWith('image/')) {
+                                this.showMessage(msgId, '请选择图片文件', 'error');
+                                infoEl.innerHTML = '';
+                                infoEl.className = 'file-info';
+                                if (input) input.value = '';
+                                this[fileProp] = null;
+                                return null;
+                            }
+                            const isValid = await this.validateImageMagic(file);
+                            if (!isValid) {
+                                this.showMessage(msgId, '文件不是有效的PNG/JPEG图片', 'error');
+                                infoEl.innerHTML = '';
+                                infoEl.className = 'file-info';
+                                if (input) input.value = '';
+                                this[fileProp] = null;
+                                return null;
+                            }
+                        }
+                        this[fileProp] = file;
+                        if (input) input.value = '';
+                        const clearCallback = () => {
+                            this.workerHandler.abortCurrent();
+                            this.operationToken++;
+                            this[fileProp] = null;
+                            if (input) input.value = '';
+                            infoEl.innerHTML = '';
+                            infoEl.className = 'file-info';
+                            const area = infoEl.closest('.upload-area');
+                            if (area) area.setAttribute('aria-label', expectedType === 'image' ? '选择封面图片，支持PNG或JPEG格式' : '选择要加密的文件，任意类型');
+                        };
+                        this.updateFileInfo(infoEl, file, clearCallback);
+                        const area = infoEl.closest('.upload-area');
+                        if (area) area.setAttribute('aria-label', `已选择文件：${file.name}，大小：${formatBytes(file.size)}，点击或拖拽可更换`);
+                        return file;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') console.warn('文件选择取消或失败', err);
+                        return null;
+                    }
+                }
+
+                async handleFileSelected(input, info, isImage, msgId, fileProp) {
+                    const file = input.files[0];
+                    if ((fileProp.includes('encrypt') && this.isEncrypting) || (fileProp.includes('decrypt') && this.isDecrypting)) {
+                        input.value = '';
+                        return;
+                    }
+                    if (isImage) {
+                        const valid = await this.validateImageMagic(file);
+                        if (!valid) {
+                            this.showMessage(msgId, '文件不是有效的PNG/JPEG图片', 'error');
+                            input.value = '';
+                            info.innerHTML = '';
+                            this[fileProp] = null;
+                            return;
+                        }
+                    }
+                    this[fileProp] = file;
+                    const clearCallback = () => {
+                        this.workerHandler.abortCurrent();
+                        this.operationToken++;
+                        this[fileProp] = null;
+                        input.value = '';
+                        info.innerHTML = '';
+                        info.className = 'file-info';
+                        const area = info.closest('.upload-area');
+                        if (area) area.setAttribute('aria-label', isImage ? '选择封面图片，支持PNG或JPEG格式' : '选择要加密的文件，任意类型');
+                    };
+                    this.updateFileInfo(info, file, clearCallback);
+                    const area = info.closest('.upload-area');
+                    if (area) area.setAttribute('aria-label', `已选择文件：${file.name}，大小：${formatBytes(file.size)}，点击或拖拽可更换`);
+                }
+
+                async validateImageMagic(file) {
+                    return new Promise((resolve) => {
+                        const blob = file.slice(0, 8);
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const arr = new Uint8Array(e.target.result);
+                            if (arr.length >= 8) {
+                                if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47 &&
+                                    arr[4] === 0x0D && arr[5] === 0x0A && arr[6] === 0x1A && arr[7] === 0x0A) {
+                                    resolve(true);
+                                    return;
+                                }
+                            }
+                            if (arr.length >= 2) {
+                                if (arr[0] === 0xFF && arr[1] === 0xD8) {
+                                    resolve(true);
+                                    return;
+                                }
+                            }
+                            resolve(false);
+                        };
+                        reader.onerror = () => resolve(false);
+                        reader.readAsArrayBuffer(blob);
+                    });
+                }
+
+                updateFileInfo(infoEl, file, clearCallback) {
+                    infoEl.innerHTML = '';
+                    infoEl.className = 'file-info success';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = `✅ ${file.name} (${formatBytes(file.size)})`;
+
+                    const clearBtn = document.createElement('span');
+                    clearBtn.textContent = '✕ 移除';
+                    clearBtn.className = 'clear-file-btn';
+                    clearBtn.setAttribute('role', 'button');
+                    clearBtn.setAttribute('tabindex', '0');
+                    clearBtn.setAttribute('aria-label', `移除文件 ${file.name}`);
+
+                    clearBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (clearCallback) clearCallback();
+                    });
+                    clearBtn.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            clearBtn.click();
+                        }
+                    });
+
+                    infoEl.appendChild(nameSpan);
+                    infoEl.appendChild(clearBtn);
+                }
+
+                // JPEG转PNG函数
+                async convertImageToPNG(arrayBuffer, token) {
+                    return new Promise((resolve, reject) => {
+                        const blob = new Blob([arrayBuffer]);
+                        const url = URL.createObjectURL(blob);
+                        const img = new Image();
+                        img.onload = () => {
+                            if (token !== this.operationToken) {
+                                URL.revokeObjectURL(url);
+                                reject(new Error('操作已取消'));
+                                return;
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            canvas.toBlob((pngBlob) => {
+                                URL.revokeObjectURL(url);
+                                if (!pngBlob) {
+                                    reject(new Error('PNG转换失败'));
+                                    return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result);
+                                reader.onerror = () => reject(new Error('读取PNG失败'));
+                                reader.readAsArrayBuffer(pngBlob);
+                            }, 'image/png');
+                        };
+                        img.onerror = () => {
+                            URL.revokeObjectURL(url);
+                            reject(new Error('图片加载失败'));
+                        };
+                        img.src = url;
+                    });
+                }
+
+                // 根据文件大小计算最佳块大小
+                getOptimalChunkSize(fileSize) {
+                    if (fileSize >= 1024 * 1024 * 1024) { // ≥1GB
+                        return CONSTANTS.CHUNK_SIZE_XLARGE; // 512KB
+                    } else if (fileSize >= 500 * 1024 * 1024) { // ≥500MB
+                        return CONSTANTS.CHUNK_SIZE_LARGE;   // 256KB
+                    } else if (fileSize >= 100 * 1024 * 1024) { // ≥100MB
+                        return CONSTANTS.CHUNK_SIZE_MEDIUM;  // 128KB
+                    } else {
+                        return CONSTANTS.CHUNK_SIZE_SMALL;   // 64KB
+                    }
+                }
+
+                // 内存清除辅助方法
+                wipeBuffer(buffer) {
+                    if (!buffer) return;
+                    try {
+                        let arrayBuffer = buffer.buffer ? buffer.buffer : buffer;
+                        if (arrayBuffer && arrayBuffer.byteLength) {
+                            let view = new Uint8Array(arrayBuffer);
+                            view.fill(0);
+                            view.fill(0xAA);
+                            view.fill(0);
+                        }
+                    } catch (e) {}
+                }
+
+                bindEvents() {
+                    this.initUploadArea({
+                        areaId: 'encrypt-image-area',
+                        inputId: 'encrypt-image-input',
+                        infoId: 'encrypt-image-info',
+                        useAdvanced: false,
+                        isImage: true,
+                        msgId: CONSTANTS.MSG_ENCRYPT
+                    });
+                    this.initUploadArea({
+                        areaId: 'encrypt-file-area',
+                        inputId: 'encrypt-file-input',
+                        infoId: 'encrypt-file-info',
+                        useAdvanced: true,
+                        isImage: false,
+                        msgId: CONSTANTS.MSG_ENCRYPT
+                    });
+                    this.initUploadArea({
+                        areaId: 'decrypt-file-area',
+                        inputId: 'decrypt-file-input',
+                        infoId: 'decrypt-file-info',
+                        useAdvanced: false,
+                        isImage: true,
+                        msgId: CONSTANTS.MSG_DECRYPT
+                    });
+
+                    const togglePwd = (btn, input) => {
+                        btn.addEventListener('click', () => {
+                            const isPassword = input.type === 'password';
+                            input.type = isPassword ? 'text' : 'password';
+                            btn.textContent = input.type === 'password' ? '显示' : '隐藏';
+                            btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+                            btn.setAttribute('aria-label', input.type === 'password' ? '切换密码可见性，当前为隐藏状态' : '切换密码可见性，当前为可见状态');
+                        });
+                    };
+                    togglePwd(this.elements.toggleEncryptPassword, this.elements.password);
+                    togglePwd(this.elements.toggleEncryptConfirm, this.elements.confirmPassword);
+                    togglePwd(this.elements.toggleDecryptPassword, this.elements.decryptPassword);
+
+                    this.elements.startEncryptBtn.addEventListener('click', () => this.startEncrypt());
+                    this.elements.startDecryptBtn.addEventListener('click', () => this.startDecrypt());
+                    this.elements.burnTraceBtn.addEventListener('click', () => this.destroyAllTraces());
+
+                    this.elements.modeTabs.forEach(tab => {
+                        tab.addEventListener('click', (e) => {
+                            if (tab.classList.contains('disabled')) return;
+                            const mode = tab.dataset.mode;
+                            this.elements.modeTabs.forEach(t => {
+                                t.classList.remove('active');
+                                t.setAttribute('aria-selected', 'false');
+                            });
+                            tab.classList.add('active');
+                            tab.setAttribute('aria-selected', 'true');
+                            
+                            this.elements.modeContents.forEach(c => c.classList.add('hidden'));
+                            const targetPanel = document.getElementById(`${mode}-mode`);
+                            if (targetPanel) targetPanel.classList.remove('hidden');
+                        });
+                    });
+
+                    this.elements.title.addEventListener('click', () => {
+                        this.titleClickCount++;
+                        if (this.titleClickCount >= 5) {
+                            this.elements.easterEgg.classList.add('show');
+                            setTimeout(() => this.elements.easterEgg.classList.remove('show'), 5000);
+                            this.titleClickCount = 0;
+                        }
+                    });
+
+                    const footer = document.querySelector('.vault-footer');
+                    if (footer) {
+                        let easterTimer;
+                        footer.addEventListener('dblclick', () => {
+                            if (easterTimer) clearTimeout(easterTimer);
+
+                            // 如果已有提示，先移除
+                            if (this.currentEasterTip) {
+                                this.currentEasterTip.remove();
+                                this.currentEasterTip = null;
+                            }
+
+                            const tip = document.createElement('div');
+                            tip.textContent = '🐦 你发现了隐藏彩蛋！BIRDY 向你问好 ✨';
+                            tip.style.cssText = `
+                                position: fixed;
+                                bottom: 80px;
+                                right: 30px;
+                                background: rgba(18, 22, 38, 0.95);
+                                border: 1px solid #a78bfa;
+                                border-radius: 30px;
+                                padding: 12px 24px;
+                                color: #e0e7ff;
+                                font-size: 0.9rem;
+                                font-weight: 600;
+                                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                                z-index: 9999;
+                                animation: fadeInOut 2s ease forwards;
+                            `;
+                            if (!document.getElementById('easter-style')) {
+                                const style = document.createElement('style');
+                                style.id = 'easter-style';
+                                style.textContent = `
+                                    @keyframes fadeInOut {
+                                        0% { opacity: 0; transform: translateY(10px); }
+                                        10% { opacity: 1; transform: translateY(0); }
+                                        80% { opacity: 1; transform: translateY(0); }
+                                        100% { opacity: 0; transform: translateY(-10px); }
+                                    }
+                                `;
+                                document.head.appendChild(style);
+                            }
+                            document.body.appendChild(tip);
+                            this.currentEasterTip = tip;
+
+                            easterTimer = setTimeout(() => {
+                                if (this.currentEasterTip === tip) {
+                                    tip.remove();
+                                    this.currentEasterTip = null;
+                                }
+                            }, 2500);
+                        });
+                    }
+
+                    this.elements.securityLevel.addEventListener('change', (e) => {
+                        try { localStorage.setItem('birdy_iterations', e.target.value); } catch (err) {}
+                    });
+
+                    document.addEventListener('keydown', (e) => {
+                        if (e.ctrlKey && e.key === 'Enter') {
+                            e.preventDefault();
+                            const activeMode = document.querySelector('.mode-tab.active').dataset.mode;
+                            if (activeMode === 'encrypt' && !this.elements.startEncryptBtn.disabled) {
+                                this.startEncrypt();
+                            } else if (activeMode === 'decrypt' && !this.elements.startDecryptBtn.disabled) {
+                                this.startDecrypt();
+                            }
+                        }
+                    });
+
+                    this.elements.password.addEventListener('input', () => {
+                        this.updatePasswordStrength();
+                        this.updateEncryptButtonState();
+                        this.hidePasswordDisplayIfMismatch();
+                    });
+                    this.elements.confirmPassword.addEventListener('input', () => {
+                        this.updatePasswordMatch();
+                        this.updateEncryptButtonState();
+                    });
+                    this.elements.generatePasswordBtn.addEventListener('click', () => this.generatePassword());
+                    this.elements.copyPasswordBtn.addEventListener('click', () => this.copyPassword());
+                    this.elements.closePasswordBtn.addEventListener('click', () => this.elements.passwordDisplay.classList.remove('show'));
+
+                    this.elements.decryptPassword.addEventListener('input', () => {
+                        this.elements.startDecryptBtn.disabled = !this.elements.decryptPassword.value;
+                    });
+                }
+
+                hidePasswordDisplayIfMismatch() {
+                    const display = this.elements.passwordDisplay;
+                    if (display.classList.contains('show')) {
+                        const generated = this.elements.generatedPasswordText.textContent;
+                        const current = this.elements.password.value;
+                        if (generated && current !== generated) {
+                            display.classList.remove('show');
+                        }
+                    }
+                }
+
+                showMessage(elementId, message, type) {
+                    const msgEl = document.getElementById(elementId);
+                    if (!msgEl) return;
+                    if (msgEl._timeout) clearTimeout(msgEl._timeout);
+                    msgEl.textContent = message;
+                    msgEl.className = `message active ${type}`;
+                    const assertive = document.getElementById('aria-live-assertive');
+                    if (assertive) assertive.textContent = message;
+                    msgEl._timeout = setTimeout(() => {
+                        msgEl.classList.remove('active');
+                        msgEl._timeout = null;
+                        if (assertive) assertive.textContent = '';
+                    }, 5000);
+                }
+
+                updateEncryptButtonState() {
+                    const pwdVal = this.elements.password.value;
+                    const confirmVal = this.elements.confirmPassword.value;
+                    const disabled = !(pwdVal.length >= 4 && pwdVal === confirmVal);
+                    this.elements.startEncryptBtn.disabled = disabled;
+                }
+
+                updatePasswordStrength() {
+                    const val = this.elements.password.value;
+                    if (!val) {
+                        this.elements.passwordStrength.style.width = '0%';
+                        this.elements.passwordStrength.className = 'password-strength';
+                        this.elements.passwordStrengthText.textContent = '';
+                        return;
+                    }
+                    const score = PasswordStrengthChecker.getPasswordStrength(val);
+                    const percent = Math.min(100, score * 10);
+                    this.elements.passwordStrength.style.width = percent + '%';
+                    if (score <= 3) {
+                        this.elements.passwordStrength.className = 'password-strength strength-weak';
+                        this.elements.passwordStrengthText.textContent = score === 0 ? '极弱 (常见密码)' : '弱';
+                        this.elements.passwordStrengthText.className = 'file-info error';
+                    } else if (score <= 6) {
+                        this.elements.passwordStrength.className = 'password-strength strength-medium';
+                        this.elements.passwordStrengthText.textContent = '中等';
+                        this.elements.passwordStrengthText.className = 'file-info';
+                    } else {
+                        this.elements.passwordStrength.className = 'password-strength strength-strong';
+                        this.elements.passwordStrengthText.textContent = '强';
+                        this.elements.passwordStrengthText.className = 'file-info success';
+                    }
+                }
+
+                updatePasswordMatch() {
+                    if (!this.elements.password.value || !this.elements.confirmPassword.value) {
+                        this.elements.passwordMatchInfo.textContent = '';
+                        return;
+                    }
+                    if (this.elements.password.value === this.elements.confirmPassword.value) {
+                        this.elements.passwordMatchInfo.textContent = '✔ 密码一致';
+                        this.elements.passwordMatchInfo.className = 'file-info success';
+                    } else {
+                        this.elements.passwordMatchInfo.textContent = '✘ 密码不匹配';
+                        this.elements.passwordMatchInfo.className = 'file-info error';
+                    }
+                }
+
+                generatePassword() {
+                    const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*()_+~|}{[]:;?><,./-=';
+                    let password = '';
+                    const randomValues = new Uint32Array(CONSTANTS.GENERATED_PASSWORD_LENGTH);
+                    crypto.getRandomValues(randomValues);
+                    for (let i = 0; i < CONSTANTS.GENERATED_PASSWORD_LENGTH; i++) {
+                        password += charset[randomValues[i] % charset.length];
+                    }
+                    this.elements.password.value = password;
+                    this.elements.confirmPassword.value = password;
+                    this.elements.password.type = 'text';
+                    this.elements.toggleEncryptPassword.textContent = '隐藏';
+                    this.elements.toggleEncryptPassword.setAttribute('aria-pressed', 'true');
+                    this.elements.toggleEncryptPassword.setAttribute('aria-label', '切换密码可见性，当前为可见状态');
+                    this.elements.confirmPassword.type = 'text';
+                    this.elements.toggleEncryptConfirm.textContent = '隐藏';
+                    this.elements.toggleEncryptConfirm.setAttribute('aria-pressed', 'true');
+                    this.elements.toggleEncryptConfirm.setAttribute('aria-label', '切换确认密码可见性，当前为可见状态');
+                    this.updatePasswordStrength();
+                    this.updatePasswordMatch();
+                    this.elements.generatedPasswordText.textContent = password;
+                    this.elements.passwordDisplay.classList.add('show');
+                    this.updateEncryptButtonState();
+                }
+
+                copyPassword() {
+                    const text = this.elements.generatedPasswordText.textContent;
+                    if (!text) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '没有可复制的密码', 'error');
+                        return;
+                    }
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            this.showMessage(CONSTANTS.MSG_ENCRYPT, '✔ 密码已复制到剪贴板', 'success');
+                        }).catch(() => this.fallbackCopy(text));
+                    } else {
+                        this.fallbackCopy(text);
+                    }
+                }
+
+                fallbackCopy(text) {
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        textarea.setSelectionRange(0, 99999);
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        if (successful) {
+                            this.showMessage(CONSTANTS.MSG_ENCRYPT, '✔ 密码已复制（后备方式）', 'success');
+                        } else {
+                            this.showMessage(CONSTANTS.MSG_ENCRYPT, '✘ 复制失败，请手动选中并复制', 'error');
+                        }
+                    } catch (e) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '✘ 复制失败，请手动选中并复制', 'error');
+                    }
+                }
+
+                loadIterationsPreference() {
+                    try {
+                        const saved = localStorage.getItem('birdy_iterations');
+                        if (saved && ['250000','500000','1000000'].includes(saved)) {
+                            this.elements.securityLevel.value = saved;
+                        }
+                    } catch (err) {}
+                }
+
+                readFileWithProgress(file, progressCallback, token) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        let aborted = false;
+                        let resolved = false;
+                        reader.onprogress = (e) => {
+                            if (token !== this.operationToken) {
+                                reader.abort();
+                                aborted = true;
+                                return;
+                            }
+                            if (e.lengthComputable && !aborted) {
+                                const percent = Math.round((e.loaded / e.total) * 100);
+                                progressCallback(percent, `读取文件 ${percent}%`);
+                            }
+                        };
+                        reader.onload = () => {
+                            if (aborted || resolved) return;
+                            resolved = true;
+                            progressCallback(100, '读取完成');
+                            resolve(reader.result);
+                        };
+                        reader.onerror = () => {
+                            if (aborted || resolved) return;
+                            resolved = true;
+                            reject(new Error('读取文件失败'));
+                        };
+                        reader.onabort = () => {
+                            if (aborted || resolved) return;
+                            resolved = true;
+                            reject(new Error('操作已取消'));
+                        };
+                        reader.readAsArrayBuffer(file);
+                    });
+                }
+
+                async startEncrypt() {
+                    if (this.workerHandler.isProcessing) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '已有任务在进行中，请稍后', 'error');
+                        return;
+                    }
+
+                    const coverFile = this.encryptImageFile;
+                    const secretFile = this.encryptSecretFile;
+                    const pwdVal = this.elements.password.value;
+                    const confirmVal = this.elements.confirmPassword.value;
+                    let iterations = parseInt(this.elements.securityLevel.value, 10);
+                    if (isNaN(iterations) || iterations < CONSTANTS.MIN_ITERATIONS || iterations > CONSTANTS.MAX_ITERATIONS) {
+                        iterations = 500000;
+                        this.elements.securityLevel.value = '500000';
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '迭代次数调整为默认值 (500,000)', 'info');
+                    }
+
+                    if (!coverFile) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '请选择封面图片', 'error');
+                        return;
+                    }
+                    if (!secretFile) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '请选择要加密的文件', 'error');
+                        return;
+                    }
+                    if (secretFile.size === 0) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '机密文件不能为空', 'error');
+                        return;
+                    }
+                    const valid = await this.validateImageMagic(coverFile);
+                    if (!valid) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '封面图片不是有效的PNG/JPEG', 'error');
+                        return;
+                    }
+                    if (pwdVal.length < 4) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '密码至少4位', 'error');
+                        return;
+                    }
+                    if (pwdVal !== confirmVal) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '两次密码不一致', 'error');
+                        return;
+                    }
+                    if (secretFile.size > CONSTANTS.MAX_SAFE_FILE_SIZE) {
+                        const confirm = window.confirm(`文件大小超过 ${CONSTANTS.MAX_SAFE_FILE_SIZE/1024/1024}MB，继续可能导致浏览器卡顿甚至崩溃。是否仍要继续？`);
+                        if (!confirm) return;
+                    } else if (secretFile.size > CONSTANTS.LARGE_FILE_WARN_SIZE) {
+                        const confirm = window.confirm(`文件大小超过 100MB，操作可能较慢。是否继续？`);
+                        if (!confirm) return;
+                    }
+
+                    const token = ++this.operationToken;
+                    this.pendingCoverInfo = { name: coverFile.name, type: coverFile.type };
+                    this.setEncrypting(true);
+
+                    const btn = this.elements.startEncryptBtn;
+                    btn.disabled = true;
+                    const prog = this.elements.encryptProgress;
+                    prog.classList.add('active');
+                    prog.setAttribute('aria-valuenow', '0');
+                    prog.setAttribute('aria-valuetext', '准备中');
+                    this.workerHandler.setCurrentProgress(
+                        this.elements.encryptProgressBar,
+                        this.elements.encryptProgressText,
+                        prog,
+                        btn,
+                        null,
+                        CONSTANTS.MSG_ENCRYPT,
+                        'encrypt'
+                    );
+
+                    // 用于存储临时 buffer 以便清除
+                    let buffersToClear = [];
+
+                    try {
+                        this.elements.encryptProgressBar.style.width = '0%';
+                        this.elements.encryptProgressText.textContent = '读取封面图片...';
+                        let coverBuffer = await coverFile.arrayBuffer();
+                        buffersToClear.push(coverBuffer);
+                        if (token !== this.operationToken) throw new Error('操作已取消');
+
+                        // 检查是否为JPEG并决定是否转换
+                        const coverArray = new Uint8Array(coverBuffer);
+                        const isJPEG = coverArray.length >= 2 && coverArray[0] === 0xFF && coverArray[1] === 0xD8;
+                        const keepJpeg = this.elements.keepJpegCheckbox && this.elements.keepJpegCheckbox.checked;
+
+                        if (isJPEG && !keepJpeg) {
+                            this.elements.encryptProgressBar.style.width = '10%';
+                            this.elements.encryptProgressText.textContent = '转换JPEG为PNG...';
+                            prog.setAttribute('aria-valuetext', '转换JPEG为PNG...');
+                            try {
+                                coverBuffer = await this.convertImageToPNG(coverBuffer, token);
+                                buffersToClear.push(coverBuffer); // 转换后的新 buffer
+                                // 更新封面信息为PNG
+                                if (this.pendingCoverInfo) this.pendingCoverInfo.type = 'image/png';
+                            } catch (e) {
+                                if (e.message === '操作已取消') throw e;
+                                this.showMessage(CONSTANTS.MSG_ENCRYPT, 'JPEG转换PNG失败: ' + e.message, 'error');
+                                this.setEncrypting(false);
+                                this.pendingCoverInfo = null;
+                                this.workerHandler.finishProcessing();
+                                return;
+                            }
+                        }
+
+                        // 容量检查已删除，不再警告用户
+
+                        this.elements.encryptProgressBar.style.width = '15%';
+                        this.elements.encryptProgressText.textContent = '读取机密文件...';
+                        let secretBuffer = await this.readFileWithProgress(secretFile, (percent, text) => {
+                            if (token === this.operationToken) {
+                                this.elements.encryptProgressBar.style.width = (15 + percent * 0.15) + '%';
+                                this.elements.encryptProgressText.textContent = text;
+                                prog.setAttribute('aria-valuenow', Math.round(15 + percent * 0.15));
+                                prog.setAttribute('aria-valuetext', text);
+                            }
+                        }, token);
+                        buffersToClear.push(secretBuffer);
+                        if (token !== this.operationToken) throw new Error('操作已取消');
+
+                        // 计算最佳块大小
+                        const optimalChunkSize = this.getOptimalChunkSize(secretFile.size);
+
+                        this.workerHandler.postEncrypt({
+                            coverArray: coverBuffer,
+                            secretArray: secretBuffer,
+                            secretMetadata: {
+                                name: secretFile.name,
+                                size: secretFile.size,
+                                type: secretFile.type
+                            },
+                            password: pwdVal,
+                            iterations: iterations
+                        }, coverBuffer, secretBuffer, optimalChunkSize);  // 传递块大小
+
+                        // buffer 已被转移，从清除列表中移除
+                        buffersToClear = buffersToClear.filter(buf => buf !== coverBuffer && buf !== secretBuffer);
+
+                        setTimeout(() => {
+                            coverBuffer = null;
+                            secretBuffer = null;
+                        }, 0);
+                    } catch (e) {
+                        if (e.message === '操作已取消') {
+                            this.showMessage(CONSTANTS.MSG_ENCRYPT, '操作已取消', 'info');
+                        } else {
+                            this.showMessage(CONSTANTS.MSG_ENCRYPT, '读取文件失败: ' + e.message, 'error');
+                        }
+                        this.setEncrypting(false);
+                        this.pendingCoverInfo = null;
+                        this.workerHandler.finishProcessing();
+                    } finally {
+                        // 清除未被转移的 buffer
+                        buffersToClear.forEach(buf => this.wipeBuffer(buf));
+                        buffersToClear = [];
+                    }
+                }
+
+                async startDecrypt() {
+                    if (this.workerHandler.isProcessing) {
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, '已有任务在进行中，请稍后', 'error');
+                        return;
+                    }
+
+                    const encryptedFile = this.decryptFile;
+                    const pwd = this.elements.decryptPassword.value;
+
+                    if (!encryptedFile) {
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, '请选择加密图片', 'error');
+                        return;
+                    }
+                    if (encryptedFile.size === 0) {
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, '加密图片不能为空', 'error');
+                        return;
+                    }
+                    const valid = await this.validateImageMagic(encryptedFile);
+                    if (!valid) {
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, '文件不是有效的PNG/JPEG图片', 'error');
+                        return;
+                    }
+                    if (!pwd) {
+                        this.showMessage(CONSTANTS.MSG_DECRYPT, '请输入密码', 'error');
+                        return;
+                    }
+
+                    const token = ++this.operationToken;
+                    this.setDecrypting(true);
+
+                    const btn = this.elements.startDecryptBtn;
+                    btn.disabled = true;
+                    const prog = this.elements.decryptProgress;
+                    prog.classList.add('active');
+                    prog.setAttribute('aria-valuenow', '0');
+                    prog.setAttribute('aria-valuetext', '准备中');
+                    this.workerHandler.setCurrentProgress(
+                        this.elements.decryptProgressBar,
+                        this.elements.decryptProgressText,
+                        prog,
+                        null,
+                        btn,
+                        CONSTANTS.MSG_DECRYPT,
+                        'decrypt'
+                    );
+
+                    let buffersToClear = [];
+
+                    try {
+                        this.elements.decryptProgressBar.style.width = '0%';
+                        this.elements.decryptProgressText.textContent = '读取加密图片...';
+                        let encryptedBuffer = await this.readFileWithProgress(encryptedFile, (percent, text) => {
+                            if (token === this.operationToken) {
+                                this.elements.decryptProgressBar.style.width = percent * 0.3 + '%';
+                                this.elements.decryptProgressText.textContent = text;
+                                prog.setAttribute('aria-valuenow', Math.round(percent * 0.3));
+                                prog.setAttribute('aria-valuetext', text);
+                            }
+                        }, token);
+                        buffersToClear.push(encryptedBuffer);
+                        if (token !== this.operationToken) throw new Error('操作已取消');
+
+                        this.workerHandler.postDecrypt({
+                            encryptedArray: encryptedBuffer,
+                            password: pwd
+                        }, encryptedBuffer);
+
+                        // buffer 已被转移，从清除列表中移除
+                        buffersToClear = buffersToClear.filter(buf => buf !== encryptedBuffer);
+
+                        setTimeout(() => {
+                            encryptedBuffer = null;
+                        }, 0);
+                    } catch (e) {
+                        if (e.message === '操作已取消') {
+                            this.showMessage(CONSTANTS.MSG_DECRYPT, '操作已取消', 'info');
+                        } else {
+                            this.showMessage(CONSTANTS.MSG_DECRYPT, '读取文件失败: ' + e.message, 'error');
+                        }
+                        this.setDecrypting(false);
+                        this.workerHandler.finishProcessing();
+                    } finally {
+                        // 清除未被转移的 buffer
+                        buffersToClear.forEach(buf => this.wipeBuffer(buf));
+                        buffersToClear = [];
+                    }
+                }
+
+                handleEncryptResult(resultBuffer, metadata) {
+                    const coverInfo = this.pendingCoverInfo;
+                    if (!coverInfo) {
+                        this.showMessage(CONSTANTS.MSG_ENCRYPT, '加密失败：封面信息已丢失', 'error');
+                        return;
+                    }
+
+                    this.cleanupUrl('encrypt');
+                    let ext = 'png';
+                    // 优先根据MIME类型决定扩展名
+                    if (coverInfo.type.includes('png')) {
+                        ext = 'png';
+                    } else if (coverInfo.type.includes('jpeg')) {
+                        ext = 'jpg';
+                    } else {
+                        // 后备：从文件名解析
+                        const dotIndex = coverInfo.name.lastIndexOf('.');
+                        if (dotIndex !== -1) {
+                            const candidate = coverInfo.name.substring(dotIndex + 1).toLowerCase();
+                            if (candidate === 'png' || candidate === 'jpg' || candidate === 'jpeg') {
+                                ext = candidate;
+                            }
+                        }
+                    }
+
+                    // 如果转换过，封面类型已改为PNG，这里ext将保持为png
+                    let outName = this.elements.outputName.value || 'encrypted';
+                    outName = sanitizeFilename(outName);
+                    if (outName.toLowerCase().endsWith(`.${ext}`)) {
+                        outName = outName.slice(0, - (ext.length + 1));
+                    } else {
+                        const lowerName = outName.toLowerCase();
+                        if (lowerName.endsWith('.png') || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                            outName = outName.slice(0, -4);
+                        }
+                    }
+                    const finalName = `${outName}.${ext}`;
+                    const blob = new Blob([resultBuffer], { type: coverInfo.type });
+                    const url = URL.createObjectURL(blob);
+                    this.downloadUrls.set('encrypt', url);
+                    const link = this.elements.downloadEncryptedLink;
+                    link.href = url;
+                    link.download = finalName;
+                    this.elements.encryptDownloadSection.classList.add('active');
+                    this.startCountdown('encrypt-download-section', 'encrypt-countdown', 'encrypt-cancel-burn', 'encrypt', CONSTANTS.COUNTDOWN_SECONDS);
+                    this.showMessage(CONSTANTS.MSG_ENCRYPT, '加密成功，文件已准备好下载', 'success');
+                    link.focus();
+                    const polite = document.getElementById('aria-live-polite');
+                    if (polite) polite.textContent = '加密完成，下载链接已可用';
+
+                    this.pendingCoverInfo = null;
+                    this.setEncrypting(false);
+                }
+
+                handleDecryptResult(resultBuffer, metadata) {
+                    this.cleanupUrl('decrypt');
+                    const blob = new Blob([resultBuffer], { type: metadata.type });
+                    const url = URL.createObjectURL(blob);
+                    this.downloadUrls.set('decrypt', url);
+                    const link = this.elements.downloadDecryptedLink;
+                    link.href = url;
+                    
+                    let safeName = sanitizeFilename(metadata.name);
+                    if (!safeName.includes('.')) {
+                        const extMap = {
+                            'image/png': 'png',
+                            'image/jpeg': 'jpg',
+                            'image/gif': 'gif',
+                            'text/plain': 'txt',
+                            'application/pdf': 'pdf',
+                            'application/zip': 'zip',
+                            'application/x-rar-compressed': 'rar',
+                            'application/x-7z-compressed': '7z',
+                            'application/x-tar': 'tar',
+                            'audio/mpeg': 'mp3',
+                            'audio/mp4': 'm4a',
+                            'audio/x-m4a': 'm4a',
+                            'audio/aac': 'aac',
+                            'audio/ogg': 'ogg',
+                            'audio/flac': 'flac',
+                            'video/mp4': 'mp4',
+                            'video/x-m4v': 'm4v',
+                            'video/webm': 'webm',
+                            'application/vnd.ms-excel': 'xls',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+                            'application/msword': 'doc',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+                            'application/vnd.ms-powerpoint': 'ppt',
+                            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
+                        };
+                        const ext = extMap[metadata.type] || 'bin';
+                        safeName += '.' + ext;
+                    }
+                    link.download = safeName;
+
+                    this.elements.decryptedFilename.textContent = metadata.name;
+                    this.elements.decryptedFilesize.textContent = formatBytes(metadata.size);
+                    const strengthName = metadata.iterations >= 1000000 ? '极限强度' : (metadata.iterations >= 500000 ? '增强强度' : '标准强度');
+                    this.elements.encryptionStrength.textContent = `${strengthName} (${formatIterations(metadata.iterations)}次迭代)`;
+                    const integrityEl = this.elements.integrityCheck;
+                    integrityEl.textContent = '✓ 通过 (哈希匹配)';
+                    integrityEl.style.color = '#6cd4b2';
+                    this.elements.decryptDownloadSection.classList.add('active');
+                    this.startCountdown('decrypt-download-section', 'decrypt-countdown', 'decrypt-cancel-burn', 'decrypt', CONSTANTS.COUNTDOWN_SECONDS);
+                    this.showMessage(CONSTANTS.MSG_DECRYPT, '解密成功，文件已准备好下载', 'success');
+                    link.focus();
+                    const polite = document.getElementById('aria-live-polite');
+                    if (polite) polite.textContent = '解密成功，下载链接已可用';
+
+                    this.setDecrypting(false);
+                }
+
+                startCountdown(sectionId, timerId, cancelBtnId, urlKey, defaultSeconds) {
+                    if (this.countdownTimers[sectionId]) clearInterval(this.countdownTimers[sectionId]);
+                    const timerEl = document.getElementById(timerId);
+                    const section = document.getElementById(sectionId);
+                    if (!timerEl || !section) return;
+                    let secondsLeft = defaultSeconds;
+                    timerEl.textContent = `⏳ 链接将在 ${secondsLeft} 秒后自动销毁`;
+
+                    const cancelBtn = document.getElementById(cancelBtnId);
+                    if (this.cancelHandlers[sectionId]) {
+                        cancelBtn.removeEventListener('click', this.cancelHandlers[sectionId]);
+                    }
+                    const handler = () => {
+                        if (this.countdownTimers[sectionId]) {
+                            clearInterval(this.countdownTimers[sectionId]);
+                            delete this.countdownTimers[sectionId];
+                        }
+                        timerEl.textContent = '⏳ 自动销毁已取消';
+                        cancelBtn.removeEventListener('click', handler);
+                        delete this.cancelHandlers[sectionId];
+                        this.cleanupUrl(urlKey);
+                        section.classList.remove('active');
+                        const polite = document.getElementById('aria-live-polite');
+                        if (polite) polite.textContent = '下载链接已销毁';
+                    };
+                    this.cancelHandlers[sectionId] = handler;
+                    cancelBtn.addEventListener('click', handler);
+
+                    this.countdownTimers[sectionId] = setInterval(() => {
+                        secondsLeft--;
+                        if (secondsLeft <= 0) {
+                            clearInterval(this.countdownTimers[sectionId]);
+                            delete this.countdownTimers[sectionId];
+                            this.cleanupUrl(urlKey);
+                            section.classList.remove('active');
+                            timerEl.textContent = '⏳ 链接已自动销毁';
+                            const polite = document.getElementById('aria-live-polite');
+                            if (polite) polite.textContent = '下载链接已自动销毁';
+                        } else {
+                            timerEl.textContent = `⏳ 链接将在 ${secondsLeft} 秒后自动销毁`;
+                        }
+                    }, 1000);
+                }
+
+                cleanupUrl(key) {
+                    if (this.downloadUrls.has(key)) {
+                        URL.revokeObjectURL(this.downloadUrls.get(key));
+                        this.downloadUrls.delete(key);
+                    }
+                }
+
+                clearPendingInfo() {
+                    this.pendingCoverInfo = null;
+                }
+
+                destroyAllTraces() {
+                    this.operationToken++;
+                    this.workerHandler.abortCurrent();
+
+                    // 移除彩蛋动画样式，避免冗余
+                    const easterStyle = document.getElementById('easter-style');
+                    if (easterStyle) easterStyle.remove();
+
+                    document.querySelectorAll('input[type=file]').forEach(input => { input.value = ''; });
+                    document.querySelectorAll('.file-info').forEach(el => {
+                        el.innerHTML = '';
+                        el.className = 'file-info';
+                    });
+                    ['password','confirm-password','decrypt-password'].forEach(id => {
+                        const inp = document.getElementById(id);
+                        if (inp) inp.value = '';
+                    });
+                    const outName = document.getElementById('output-name');
+                    if (outName) outName.value = 'encrypted_vault';
+
+                    this.elements.password.type = 'password';
+                    this.elements.toggleEncryptPassword.textContent = '显示';
+                    this.elements.toggleEncryptPassword.setAttribute('aria-pressed', 'false');
+                    this.elements.toggleEncryptPassword.setAttribute('aria-label', '切换密码可见性，当前为隐藏状态');
+                    this.elements.confirmPassword.type = 'password';
+                    this.elements.toggleEncryptConfirm.textContent = '显示';
+                    this.elements.toggleEncryptConfirm.setAttribute('aria-pressed', 'false');
+                    this.elements.toggleEncryptConfirm.setAttribute('aria-label', '切换确认密码可见性，当前为隐藏状态');
+                    this.elements.decryptPassword.type = 'password';
+                    this.elements.toggleDecryptPassword.textContent = '显示';
+                    this.elements.toggleDecryptPassword.setAttribute('aria-pressed', 'false');
+                    this.elements.toggleDecryptPassword.setAttribute('aria-label', '切换密码可见性，当前为隐藏状态');
+
+                    this.elements.passwordDisplay.classList.remove('show');
+
+                    this.elements.encryptDownloadSection?.classList.remove('active');
+                    this.elements.decryptDownloadSection?.classList.remove('active');
+                    this.downloadUrls.forEach((url, key) => { URL.revokeObjectURL(url); });
+                    this.downloadUrls.clear();
+                    Object.keys(this.countdownTimers).forEach(key => {
+                        clearInterval(this.countdownTimers[key]);
+                        delete this.countdownTimers[key];
+                    });
+                    Object.entries(this.cancelHandlers).forEach(([sectionId, handler]) => {
+                        const btnId = sectionId === 'encrypt-download-section' ? 'encrypt-cancel-burn' : 'decrypt-cancel-burn';
+                        const btn = document.getElementById(btnId);
+                        if (btn) btn.removeEventListener('click', handler);
+                    });
+                    this.cancelHandlers = {};
+                    this.elements.passwordStrength.style.width = '0%';
+                    this.elements.passwordStrength.className = 'password-strength';
+                    this.elements.passwordStrengthText.textContent = '';
+                    this.elements.passwordMatchInfo.textContent = '';
+                    this.elements.easterEgg.classList.remove('show');
+                    this.titleClickCount = 0;
+                    document.querySelectorAll('.upload-area').forEach(el => {
+                        el.classList.remove('drag-over');
+                        if (el.id === 'encrypt-image-area') el.setAttribute('aria-label', '选择封面图片，支持PNG或JPEG格式');
+                        else if (el.id === 'encrypt-file-area') el.setAttribute('aria-label', '选择要加密的文件，任意类型');
+                        else if (el.id === 'decrypt-file-area') el.setAttribute('aria-label', '载入含有机密数据的图片，支持PNG或JPEG');
+                    });
+
+                    this.encryptImageFile = null;
+                    this.encryptSecretFile = null;
+                    this.decryptFile = null;
+                    this.pendingCoverInfo = null;
+                    this.setEncrypting(false);
+                    this.setDecrypting(false);
+
+                    document.querySelectorAll('.message').forEach(el => {
+                        if (el._timeout) clearTimeout(el._timeout);
+                        el._timeout = null;
+                    });
+
+                    this.showMessage(CONSTANTS.MSG_ENCRYPT, '表单已清空，Worker已重置，Blob URL已吊销', 'info');
+                    this.showMessage(CONSTANTS.MSG_DECRYPT, '表单已清空，Worker已重置，Blob URL已吊销', 'info');
+
+                    this.updateEncryptButtonState();
+                    this.elements.startDecryptBtn.disabled = false;
+                }
+            }
+
+            // 免责声明模态框逻辑
+            const disclaimerModal = document.getElementById('disclaimerModal');
+            const agreeBtn = document.getElementById('agreeDisclaimerBtn');
+            const showAgainBtn = document.getElementById('showModalAgainBtn');
+            const contentDiv = disclaimerModal?.querySelector('.disclaimer-content');
+            const body = document.body;
+
+            if (disclaimerModal && agreeBtn && contentDiv) {
+                let ticking = false;
+                function checkScroll() {
+                    const scrollTop = contentDiv.scrollTop;
+                    const scrollHeight = contentDiv.scrollHeight;
+                    const clientHeight = contentDiv.clientHeight;
+                    const atBottom = (scrollHeight - scrollTop - clientHeight) < 5;
+                    agreeBtn.disabled = !atBottom;
+                    ticking = false;
+                }
+
+                function resetDisclaimer() {
+                    contentDiv.scrollTop = 0;
+                    agreeBtn.disabled = true;
+                    if (!ticking) {
+                        window.requestAnimationFrame(checkScroll);
+                        ticking = true;
+                    }
+                }
+
+                contentDiv.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        window.requestAnimationFrame(checkScroll);
+                        ticking = true;
+                    }
+                });
+
+                resetDisclaimer();
+
+                agreeBtn.addEventListener('click', function() {
+                    if (agreeBtn.disabled) {
+                        alert('请先滑动阅读完完整声明');
+                        return;
+                    }
+                    disclaimerModal.classList.add('disclaimer-hidden');
+                    body.classList.remove('modal-open');
+                });
+
+                showAgainBtn.addEventListener('click', function() {
+                    disclaimerModal.classList.remove('disclaimer-hidden');
+                    body.classList.add('modal-open');
+                    resetDisclaimer();
+                });
+
+                body.classList.add('modal-open');
+            }
+
+            new VaultUI();
+        })();
+    </script>
+</body>
+</html>
