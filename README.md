@@ -8,7 +8,7 @@
 生成的图片外观完全正常，可以正常预览和分享，只有知道正确密码的人才能提取出原始文件。
 
 **在线体验地址**（GitHub Pages 已上线）：  
-https://cloudy2791-1.github.io/Birdy-File-Steganography/
+https://cloudy2791-1.github.io/Birdy-File-Steganography-2/
 
 ---
 
