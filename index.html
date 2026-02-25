@@ -43,6 +43,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         body.modal-open { overflow: hidden; }
         .privacy-vault {
@@ -227,6 +229,11 @@
             cursor: pointer;
             transition: background 0.1s;
             white-space: nowrap;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .clear-file-btn:hover { background: var(--danger); color: white; border-color: var(--danger); }
         .input-group { margin-bottom: 1.5rem; position: relative; }
@@ -268,6 +275,11 @@
             font-size: 0.8rem;
             line-height: 1;
             z-index: 2;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .toggle-pwd-btn:hover { color: var(--text-primary); }
         .password-meter {
@@ -297,6 +309,11 @@
             font-weight: 600;
             cursor: pointer;
             transition: background 0.1s;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .tiny-btn:hover { background: var(--accent-primary); border-color: var(--accent-primary); color: white; font-weight: 700; }
         .password-display-area {
@@ -329,6 +346,11 @@
             font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .copy-password-btn:hover { background: var(--accent-primary); border-color: var(--accent-primary); color: white; font-weight: 700; }
         .close-password-btn:hover { background: var(--danger); border-color: var(--danger); color: white; font-weight: 700; }
@@ -464,6 +486,11 @@
             margin-left: 1rem;
             cursor: pointer;
             font-weight: 600;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .cancel-burn:hover { background: var(--bg-surface-hover); font-weight: 700; }
         .burn-after {
@@ -480,6 +507,11 @@
             font-size: 0.7rem;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-burn:hover { background: var(--danger-light-bg); border-color: var(--danger); font-weight: 700; }
         .vault-footer {
@@ -521,7 +553,15 @@
             .input-group input, .input-group select { padding: 0.8rem 1rem; }
             .card { padding: 1.2rem 1rem; }
             .password-display-area { flex-direction: column; align-items: flex-start; }
-            .password-display-actions { margin-top: 0.5rem; }
+            .password-display-actions { 
+                margin-top: 0.5rem; 
+                flex-direction: column; 
+                width: 100%; 
+            }
+            .copy-password-btn, .close-password-btn { 
+                width: 100%; 
+                margin: 0.2rem 0; 
+            }
             .clear-file-btn, .tiny-btn, .copy-password-btn, .close-password-btn, .cancel-burn, .btn-burn, .toggle-pwd-btn {
                 min-height: 44px;
                 min-width: 44px;
@@ -530,6 +570,19 @@
                 justify-content: center;
             }
             .toggle-pwd-btn { right: 8px; }
+            .option-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .shortcut-hint, .privacy-note {
+                width: 100%;
+                box-sizing: border-box;
+                text-align: left;
+                margin-left: 0 !important;
+                white-space: normal;
+                word-break: break-word;
+            }
         }
         .extra-warning {
             background: var(--warning-light-bg);
@@ -1641,6 +1694,7 @@
                     this.currentEncryptBtn = null;
                     this.currentDecryptBtn = null;
                     this.currentMessageId = null;
+                    this.rafId = null;
                 }
 
                 initWorker() {
@@ -1665,15 +1719,19 @@
                     const msg = e.data;
                     if (msg.type === 'progress') {
                         if (this.currentProgressBar && this.currentProgressText) {
-                            const base = 30;
-                            const range = 70;
-                            const mappedPercent = base + (msg.percent / 100) * range;
-                            this.currentProgressBar.style.width = mappedPercent + '%';
-                            this.currentProgressText.textContent = msg.text;
-                            if (this.currentProgressContainer) {
-                                this.currentProgressContainer.setAttribute('aria-valuenow', Math.round(mappedPercent));
-                                this.currentProgressContainer.setAttribute('aria-valuetext', msg.text);
-                            }
+                            if (this.rafId) cancelAnimationFrame(this.rafId);
+                            this.rafId = requestAnimationFrame(() => {
+                                const base = 30;
+                                const range = 70;
+                                const mappedPercent = base + (msg.percent / 100) * range;
+                                this.currentProgressBar.style.width = mappedPercent + '%';
+                                this.currentProgressText.textContent = msg.text;
+                                if (this.currentProgressContainer) {
+                                    this.currentProgressContainer.setAttribute('aria-valuenow', Math.round(mappedPercent));
+                                    this.currentProgressContainer.setAttribute('aria-valuetext', msg.text);
+                                }
+                                this.rafId = null;
+                            });
                         }
                     } else if (msg.type === 'result') {
                         if (msg.action === 'encrypt') {
@@ -1712,6 +1770,10 @@
                 }
 
                 finishProcessing() {
+                    if (this.rafId) {
+                        cancelAnimationFrame(this.rafId);
+                        this.rafId = null;
+                    }
                     if (this.currentMode === 'encrypt') {
                         this.ui.setEncrypting(false);
                     } else if (this.currentMode === 'decrypt') {
@@ -1766,6 +1828,10 @@
                 }
 
                 abortCurrent() {
+                    if (this.rafId) {
+                        cancelAnimationFrame(this.rafId);
+                        this.rafId = null;
+                    }
                     this.terminateWorker();
                     this.isProcessing = false;
                     if (this.currentProgressContainer) {
@@ -2631,9 +2697,11 @@
                         this.elements.encryptProgressText.textContent = '读取机密文件...';
                         let secretBuffer = await this.readFileWithProgress(secretFile, (percent, text) => {
                             if (token === this.operationToken) {
-                                this.elements.encryptProgressBar.style.width = (15 + percent * 0.15) + '%';
+                                const baseWidth = 15;
+                                const add = percent * 0.15;
+                                this.elements.encryptProgressBar.style.width = (baseWidth + add) + '%';
                                 this.elements.encryptProgressText.textContent = text;
-                                prog.setAttribute('aria-valuenow', Math.round(15 + percent * 0.15));
+                                prog.setAttribute('aria-valuenow', Math.round(baseWidth + add));
                                 prog.setAttribute('aria-valuetext', text);
                             }
                         }, token);
@@ -2958,6 +3026,7 @@
                     this.elements.toggleDecryptPassword.setAttribute('aria-label', '切换密码可见性，当前为隐藏状态');
 
                     this.elements.passwordDisplay.classList.remove('show');
+                    this.elements.generatedPasswordText.textContent = '';
 
                     this.elements.encryptDownloadSection?.classList.remove('active');
                     this.elements.decryptDownloadSection?.classList.remove('active');
